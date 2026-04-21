@@ -1,0 +1,200 @@
+:root {
+  --primary: #1a237e;
+  --accent: #ff6f00;
+  --bg: #fafafa;
+  --text: #333;
+  --card-bg: #fff;
+  --border: #ddd;
+}
+
+.dark {
+  --primary: #7986cb;
+  --accent: #ffab40;
+  --bg: #1a1a2e;
+  --text: #e0e0e0;
+  --card-bg: #2a2a40;
+  --border: #444;
+}
+
+body { background: var(--bg); color: var(--text); }
+
+.app-wrap {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 16px;
+  min-height: 100dvh;
+}
+
+.app-wrap h1 { color: var(--primary); text-align: center; margin-bottom: 4px; font-size: 22px; }
+.app-wrap h2 { color: var(--primary); font-size: 18px; margin: 12px 0 8px; }
+.app-wrap h3 { color: var(--accent); font-size: 15px; margin: 8px 0 4px; }
+
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+  margin-bottom: 12px;
+}
+
+.btn {
+  padding: 10px 18px;
+  border: 2px solid var(--primary);
+  border-radius: 8px;
+  background: var(--card-bg);
+  color: var(--primary);
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.btn:active { opacity: 0.7; }
+.btn-primary { background: var(--primary); color: #fff; }
+.btn-accent { background: var(--accent); color: #fff; border-color: var(--accent); }
+.btn-full { width: 100%; display: block; }
+.btn-sm { padding: 6px 12px; font-size: 12px; }
+
+.method-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.method-btn {
+  padding: 16px 8px;
+  border: 2px solid var(--primary);
+  border-radius: 10px;
+  background: var(--card-bg);
+  cursor: pointer;
+  text-align: center;
+}
+.method-btn:active { background: var(--primary); color: #fff; }
+.method-btn .icon { font-size: 28px; margin-bottom: 4px; }
+.method-btn .label { font-size: 12px; font-weight: bold; color: var(--primary); }
+
+.hexagram-display {
+  text-align: center;
+  padding: 16px 0;
+}
+.hexagram-display .hex-name {
+  font-size: 22px;
+  font-weight: bold;
+  color: var(--primary);
+}
+.hexagram-display .hex-han {
+  font-size: 36px;
+  color: var(--accent);
+  font-family: serif;
+}
+.hexagram-display .hex-meaning {
+  font-size: 13px;
+  color: var(--text);
+  opacity: 0.8;
+  margin-top: 4px;
+}
+
+.line-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 4px 0;
+  font-size: 13px;
+}
+.line-bar {
+  width: 80px;
+  height: 8px;
+  border-radius: 2px;
+}
+.line-yang { background: var(--primary); }
+.line-yin {
+  background: transparent;
+  display: flex;
+  gap: 8px;
+}
+.line-yin span {
+  flex: 1;
+  height: 8px;
+  background: var(--primary);
+  border-radius: 2px;
+}
+.line-moving { color: var(--accent); font-weight: bold; }
+
+.trigram-picker {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin: 8px 0;
+}
+.trigram-btn {
+  padding: 8px 4px;
+  border: 2px solid var(--border);
+  border-radius: 6px;
+  background: var(--card-bg);
+  cursor: pointer;
+  text-align: center;
+  font-size: 12px;
+}
+.trigram-btn.selected { border-color: var(--primary); background: var(--primary); color: #fff; }
+.trigram-btn .sym { font-size: 20px; }
+
+.ai-result {
+  font-size: 14px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  max-height: 60vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 16px;
+}
+.modal {
+  background: var(--card-bg);
+  border-radius: 12px;
+  padding: 16px;
+  max-width: 500px;
+  width: 100%;
+  max-height: 85vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+input, select, textarea {
+  font-size: 16px !important;
+  background: var(--card-bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.action-bar {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin: 12px 0;
+}
+
+.question-input {
+  margin: 12px 0;
+}
+.question-input label {
+  font-size: 12px;
+  color: var(--text);
+  opacity: 0.7;
+  display: block;
+  margin-bottom: 4px;
+}
