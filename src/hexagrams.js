@@ -12,7 +12,7 @@ export const TRIGRAMS = {
 
 // 64 Quẻ: [number, name, han, upper_trigram, lower_trigram, short_meaning]
 export const HEXAGRAMS = [
-  [1,'Thuần Càn','乾','111','111','Trời, mạnh mẽ, sáng tạo, khởi đầu'],
+  [1,'Thuần Kiền','乾','111','111','Trời, mạnh mẽ, sáng tạo, khởi đầu'],
   [2,'Thuần Khôn','坤','000','000','Đất, nhu thuận, bao dung, tiếp nhận'],
   [3,'Thủy Lôi Truân','屯','010','001','Khó khăn ban đầu, kiên nhẫn sẽ thành'],
   [4,'Sơn Thủy Mông','蒙','100','010','Mông muội, cần học hỏi, khai sáng'],

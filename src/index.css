@@ -1,7 +1,7 @@
 * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-body { overscroll-behavior: none; -webkit-overflow-scrolling: touch; }
-button { font-family: inherit; }
-button:active { opacity: 0.85; transform: scale(0.97); }
+body { overscroll-behavior: none; -webkit-overflow-scrolling: touch; overflow-x: hidden; }
+button { font-family: inherit; transition: transform .1s, opacity .1s; }
+button:active { opacity: 0.75; transform: scale(0.97); }
 input, select, textarea { font-family: inherit; }
 details summary { list-style: none; }
 details summary::-webkit-details-marker { display: none; }

@@ -94,13 +94,20 @@ export default function App(){
   const toggleDark=()=>{const n=!dark;setDark(n);localStorage.setItem('kd_dark',n?'1':'0')};
   const goHome=()=>{setView('home');setResult(null);setLuanResult('');setChatHistory([]);setDacBietResult(null)};
 
-  // Swipe (smoother)
+  // Swipe (smooth with visual feedback)
   const swipeRef=useRef({x:0,t:0});
-  const onTS=useCallback(e=>{swipeRef.current={x:e.touches[0].clientX,t:Date.now()}},[]);
+  const[swipeX,setSwipeX]=useState(0);
+  const onTS=useCallback(e=>{swipeRef.current={x:e.touches[0].clientX,t:Date.now()};setSwipeX(0)},[]);
+  const onTM=useCallback(e=>{
+    const dx=e.touches[0].clientX-swipeRef.current.x;
+    if(swipeRef.current.x<50&&dx>0) setSwipeX(Math.min(dx*.3,60));
+  },[]);
   const onTE=useCallback(e=>{
     const dx=e.changedTouches[0].clientX-swipeRef.current.x;
     const dt=Date.now()-swipeRef.current.t;
-    if(dx>60&&swipeRef.current.x<40&&dt<400) goHome();
+    const velocity=dx/Math.max(dt,1);
+    setSwipeX(0);
+    if((dx>80||velocity>0.4)&&swipeRef.current.x<50&&dt<500) goHome();
   },[]);
 
   // Pull-down for ngẫu nhiên
@@ -133,10 +140,13 @@ export default function App(){
   };
 
   const castNgauNhien=()=>{
-    const lines=[];for(let i=0;i<6;i++){const c=[0,0,0].map(()=>Math.random()<.5?2:3);lines.push({value:c.reduce((a,b)=>a+b,0)})}
-    const lv=lines.map(l=>(l.value===7||l.value===9)?1:0);
-    const moving=lines.map((l,i)=>(l.value===6||l.value===9)?i:-1).filter(i=>i>=0);
-    const r=buildResult({chinh:lv2hex(lv),bien:moving.length>0?lv2bien(lv,moving):null,queHo:lv2ho(lv),lines,lineValues:lv,moving},'Ngẫu Nhiên');
+    // Generate 6 random yin/yang lines
+    const lv=[];for(let i=0;i<6;i++)lv.push(Math.random()<.5?1:0);
+    // Exactly 1 moving line (random position)
+    const mvIdx=Math.floor(Math.random()*6);
+    const moving=[mvIdx];
+    const lines=lv.map((v,i)=>({value:moving.includes(i)?(v===1?9:6):(v===1?7:8)}));
+    const r=buildResult({chinh:lv2hex(lv),bien:lv2bien(lv,moving),queHo:lv2ho(lv),lines,lineValues:lv,moving},'Ngẫu Nhiên');
     setResult(r);addHist(r);setLuanResult('');setChatHistory([]);setPhamVi('');setView('ngaunhien');
   };
 
@@ -179,24 +189,26 @@ export default function App(){
   const sendFU=async()=>{if(!followUp.trim()||luanLoading)return;const m={role:'user',content:followUp},h=[...chatHistory,m];setChatHistory(h);setFollowUp('');setLuanLoading(true);try{const t=await callAI(h,p=>setChatHistory([...h,{role:'assistant',content:p}]));setChatHistory([...h,{role:'assistant',content:t}])}catch(e){setChatHistory([...h,{role:'assistant',content:'❌ '+e.message}])}finally{setLuanLoading(false)}};
 
   // ======== RENDER ========
-  const RHex=({lv,w=90})=>{
+  const RHex=({lv,highlight=[],w=90})=>{
     const h=Math.max(7,w/11);const gap=Math.max(7,w/8);const half=(w-w*.1)/2;
     return <div style={{display:'flex',flexDirection:'column-reverse',alignItems:'center',gap}}>
       {lv.map((v,i)=>{
+        const hl=highlight.includes(i);
+        const cl=hl?P.red:P.fg;
         return <div key={i} style={{width:w,display:'flex',justifyContent:v===1?'center':'space-between'}}>
-          {v===1?<div style={{width:w,height:h,background:P.fg,borderRadius:2}}/>
-            :<><div style={{width:half,height:h,background:P.fg,borderRadius:2}}/><div style={{width:half,height:h,background:P.fg,borderRadius:2}}/></>}
+          {v===1?<div style={{width:w,height:h,background:cl,borderRadius:2}}/>
+            :<><div style={{width:half,height:h,background:cl,borderRadius:2}}/><div style={{width:half,height:h,background:cl,borderRadius:2}}/></>}
         </div>
       })}
     </div>;
   };
 
   // Quẻ block: Thượng / Hạ / Tên
-  const QB=({hex,lv,label,w=90})=>{
+  const QB=({hex,lv,label,w=90,hl=[]})=>{
     if(!hex)return null;
     return <div style={{textAlign:'center',cursor:'pointer',flex:1}} onClick={()=>setPopup(hex)}>
       <div style={{fontSize:10,color:P.muted,marginBottom:8,fontWeight:700,letterSpacing:1.5}}>{label}</div>
-      <RHex lv={lv} w={w}/>
+      <RHex lv={lv} w={w} highlight={hl}/>
       <div style={{marginTop:10,fontSize:13,color:P.fg,lineHeight:1.3}}>{VIET[hex[3]]||''}</div>
       <div style={{fontSize:13,color:P.fg}}>{VIET[hex[4]]||''}</div>
       <div style={{fontSize:17,fontWeight:700,color:P.accent,marginTop:2}}>{shortQ(hex)}</div>
@@ -256,7 +268,7 @@ export default function App(){
     </div>
   );
 
-  const wrap={background:P.bg,color:P.fg,minHeight:'100dvh',fontFamily:"'Noto Sans','Inter',system-ui,sans-serif"};
+  const wrap={background:P.bg,color:P.fg,minHeight:'100dvh',fontFamily:"'Noto Sans','Inter',system-ui,sans-serif",transform:`translateX(${swipeX}px)`,transition:swipeX===0?'transform .2s ease-out':'none'};
 
   // ======== HOME ========
   if(view==='home'){
@@ -267,7 +279,7 @@ export default function App(){
       </button>
     );
     return(
-      <div style={wrap} onTouchStart={onTS} onTouchEnd={onTE}>
+      <div style={wrap} onTouchStart={onTS} onTouchMove={onTM} onTouchEnd={onTE}>
         <div style={{maxWidth:480,margin:'0 auto',padding:'20px 16px'}}>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:24}}>
             <div/><div style={{fontSize:18,fontWeight:700,letterSpacing:1.5}}>KINH DỊCH</div>
@@ -299,7 +311,7 @@ export default function App(){
   if(view==='question'){
     const r=qResult;
     return(
-      <div style={wrap} onTouchStart={onTS} onTouchEnd={onTE}>
+      <div style={wrap} onTouchStart={onTS} onTouchMove={onTM} onTouchEnd={onTE}>
         <div style={{maxWidth:480,margin:'0 auto',padding:16}}>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
             <button onClick={goHome} style={{background:'none',border:'none',color:P.accent,fontSize:13,cursor:'pointer',fontWeight:600}}>← Quay lại</button>
@@ -317,7 +329,7 @@ export default function App(){
           {r&&<>
             <div style={{fontSize:11,color:P.muted,textAlign:'center',marginBottom:6}}>{r.ts}{r.lunar?` • ÂL ${r.lunar.day}/${r.lunar.month}/${r.lunar.year}`:''}</div>
             <div style={{display:'flex',justifyContent:'space-evenly',padding:'24px 8px',marginBottom:10,background:P.card,borderRadius:16,border:`1px solid ${P.border}`}}>
-              <QB hex={r.chinh} lv={r.lineValues} label="CHÁNH" w={90}/>
+              <QB hex={r.chinh} lv={r.lineValues} hl={r.moving} label="CHÁNH" w={90}/>
               {r.queHo&&<QB hex={r.queHo} lv={hoLv(r.lineValues)} label="HỘ" w={90}/>}
               {r.bien&&<QB hex={r.bien} lv={bienLv(r.lineValues,r.moving)} label="BIẾN" w={90}/>}
             </div>
@@ -338,11 +350,21 @@ export default function App(){
   if(view==='ngaunhien'&&result?.chinh){
     const doPull=()=>{setPullY(0);setTimeout(castNgauNhien,50)};
     return(
-      <div style={{...wrap,transform:`translateY(${pullY}px)`,transition:pullY===0?'transform .3s':'none',touchAction:'pan-x'}}
+      <div style={{...wrap,transform:`translateX(${swipeX}px) translateY(${pullY}px)`,transition:(swipeX===0&&pullY===0)?'transform .25s ease-out':'none'}}
         onTouchStart={e=>{onTS(e);pullRef.current=e.touches[0].clientY}}
-        onTouchMove={e=>{const dy=e.touches[0].clientY-pullRef.current;if(dy>0){e.preventDefault();setPullY(Math.min(dy*.4,80))}}}
-        onTouchEnd={e=>{onTE(e);if(pullY>50){doPull()}else{setPullY(0)}}}>
-        {pullY>10&&<div style={{textAlign:'center',padding:8,fontSize:12,color:P.accent,fontWeight:600}}>{pullY>50?'↓ Thả để gieo lại':'↓ Kéo xuống gieo lại'}</div>}
+        onTouchMove={e=>{
+          const dx=e.touches[0].clientX-swipeRef.current.x;
+          const dy=e.touches[0].clientY-pullRef.current;
+          if(Math.abs(dx)>Math.abs(dy)&&swipeRef.current.x<50&&dx>0){setSwipeX(Math.min(dx*.3,60))}
+          else if(dy>0&&Math.abs(dy)>Math.abs(dx)){setPullY(Math.min(dy*.4,80))}
+        }}
+        onTouchEnd={e=>{
+          const dx=e.changedTouches[0].clientX-swipeRef.current.x;
+          const dt=Date.now()-swipeRef.current.t;
+          if(swipeX>30||(dx>80&&swipeRef.current.x<50&&dt<500)){setSwipeX(0);goHome()}
+          else if(pullY>50){setSwipeX(0);doPull()}
+          else{setSwipeX(0);setPullY(0)}
+        }}>        {pullY>10&&<div style={{textAlign:'center',padding:8,fontSize:12,color:P.accent,fontWeight:600}}>{pullY>50?'↓ Thả để gieo lại':'↓ Kéo xuống gieo lại'}</div>}
         <div style={{maxWidth:600,margin:'0 auto',padding:16}}>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
             <button onClick={goHome} style={{background:'none',border:'none',color:P.accent,fontSize:13,cursor:'pointer',fontWeight:600}}>← Quay lại</button>
@@ -350,7 +372,7 @@ export default function App(){
             <div style={{width:32}}/>
           </div>
           <div style={{display:'flex',justifyContent:'space-evenly',padding:'28px 12px',marginBottom:10,background:P.card,borderRadius:16,border:`1px solid ${P.border}`}}>
-            <QB hex={result.chinh} lv={result.lineValues} label="CHÁNH" w={90}/>
+            <QB hex={result.chinh} lv={result.lineValues} hl={result.moving} label="CHÁNH" w={90}/>
             {result.queHo&&<QB hex={result.queHo} lv={hoLv(result.lineValues)} label="HỘ" w={90}/>}
             {result.bien&&<QB hex={result.bien} lv={bienLv(result.lineValues,result.moving)} label="BIẾN" w={90}/>}
           </div>
@@ -366,7 +388,7 @@ export default function App(){
   if(view==='dacbiet'){
     const r=dacBietResult;
     return(
-      <div style={wrap} onTouchStart={onTS} onTouchEnd={onTE}>
+      <div style={wrap} onTouchStart={onTS} onTouchMove={onTM} onTouchEnd={onTE}>
         <div style={{maxWidth:480,margin:'0 auto',padding:20}}>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
             <button onClick={goHome} style={{background:'none',border:'none',color:P.accent,fontSize:13,cursor:'pointer',fontWeight:600}}>← Quay lại</button>
@@ -380,7 +402,7 @@ export default function App(){
           {r&&(
             <div style={{background:P.card,borderRadius:14,border:`1px solid ${P.border}`,padding:16,marginBottom:12}}>
               <div style={{display:'flex',justifyContent:'space-evenly',marginBottom:12}}>
-                <QB hex={r.chinh} lv={r.lineValues} label="CHÁNH" w={75}/>
+                <QB hex={r.chinh} lv={r.lineValues} hl={r.moving} label="CHÁNH" w={75}/>
                 {r.queHo&&<QB hex={r.queHo} lv={hoLv(r.lineValues)} label="HỘ" w={75}/>}
                 {r.bien&&<QB hex={r.bien} lv={bienLv(r.lineValues,r.moving)} label="BIẾN" w={75}/>}
               </div>
@@ -396,7 +418,7 @@ export default function App(){
   // ======== NHẬP QUẺ ========
   if(view==='nhap'){
     return(
-      <div style={wrap} onTouchStart={onTS} onTouchEnd={onTE}>
+      <div style={wrap} onTouchStart={onTS} onTouchMove={onTM} onTouchEnd={onTE}>
         <div style={{maxWidth:480,margin:'0 auto',padding:16}}>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
             <button onClick={()=>{goHome();setManualMoving([])}} style={{background:'none',border:'none',color:P.accent,fontSize:13,cursor:'pointer',fontWeight:600}}>← Quay lại</button>
@@ -430,7 +452,7 @@ export default function App(){
   if(view==='result'&&result?.chinh){
     const done=!luanLoading&&(luanResult||chatHistory.length>0);
     return(
-      <div style={wrap} onTouchStart={onTS} onTouchEnd={onTE}>
+      <div style={wrap} onTouchStart={onTS} onTouchMove={onTM} onTouchEnd={onTE}>
         <div style={{maxWidth:600,margin:'0 auto',padding:16}}>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
             <button onClick={goHome} style={{background:'none',border:'none',color:P.accent,fontSize:13,cursor:'pointer',fontWeight:600}}>← Quay lại</button>
@@ -443,7 +465,7 @@ export default function App(){
             {result.question&&<div style={{color:P.muted}}>{result.question}</div>}
           </div>}
           <div style={{display:'flex',justifyContent:'space-evenly',padding:'28px 12px',marginBottom:8,background:P.card,borderRadius:16,border:`1px solid ${P.border}`}}>
-            <QB hex={result.chinh} lv={result.lineValues} label="CHÁNH" w={90}/>
+            <QB hex={result.chinh} lv={result.lineValues} hl={result.moving} label="CHÁNH" w={90}/>
             {result.queHo&&<QB hex={result.queHo} lv={hoLv(result.lineValues)} label="HỘ" w={90}/>}
             {result.bien&&<QB hex={result.bien} lv={bienLv(result.lineValues,result.moving)} label="BIẾN" w={90}/>}
           </div>
