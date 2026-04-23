@@ -62,7 +62,7 @@ function mhCalc(upperSum, lowerSum, totalSum) {
 }
 
 function nowTS(){const d=new Date();return`${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')} ${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`}
-function shortQ(hex){return hex?hex[1].split(' ').pop():''}
+function shortQ(hex){if(!hex)return'';const p=hex[1].split(' ');return p.length>2?p.slice(2).join(' '):hex[1]}
 
 // ======== APP ========
 export default function App(){
@@ -163,8 +163,10 @@ export default function App(){
 
   const castQuestion=()=>{
     const now=new Date(),lu=s2l(now.getDate(),now.getMonth()+1,now.getFullYear()),hi=hIdx(now.getHours())+1;
-    const us=lu.year+lu.month+lu.day,ls=us+hi;
-    const r=buildResult(mhCalc(us,ls,ls),'Gieo Quẻ',qText,qName);
+    const sec=now.getSeconds()+1,ms=now.getMilliseconds()+1;
+    const us=lu.year+lu.month+lu.day+hi;
+    const ls=us+sec;
+    const r=buildResult(mhCalc(us,ls,ls+ms),'Gieo Quẻ',qText,qName);
     setQResult(r);addHist(r);
   };
 
@@ -177,26 +179,24 @@ export default function App(){
   const sendFU=async()=>{if(!followUp.trim()||luanLoading)return;const m={role:'user',content:followUp},h=[...chatHistory,m];setChatHistory(h);setFollowUp('');setLuanLoading(true);try{const t=await callAI(h,p=>setChatHistory([...h,{role:'assistant',content:p}]));setChatHistory([...h,{role:'assistant',content:t}])}catch(e){setChatHistory([...h,{role:'assistant',content:'❌ '+e.message}])}finally{setLuanLoading(false)}};
 
   // ======== RENDER ========
-  const RHex=({lv,moving=[],w=90})=>{
+  const RHex=({lv,w=90})=>{
     const h=Math.max(7,w/11);const gap=Math.max(7,w/8);const half=(w-w*.1)/2;
     return <div style={{display:'flex',flexDirection:'column-reverse',alignItems:'center',gap}}>
       {lv.map((v,i)=>{
-        const isM=moving.includes(i);
-        const cl=isM?P.red:P.fg;
         return <div key={i} style={{width:w,display:'flex',justifyContent:v===1?'center':'space-between'}}>
-          {v===1?<div style={{width:w,height:h,background:cl,borderRadius:2}}/>
-            :<><div style={{width:half,height:h,background:cl,borderRadius:2}}/><div style={{width:half,height:h,background:cl,borderRadius:2}}/></>}
+          {v===1?<div style={{width:w,height:h,background:P.fg,borderRadius:2}}/>
+            :<><div style={{width:half,height:h,background:P.fg,borderRadius:2}}/><div style={{width:half,height:h,background:P.fg,borderRadius:2}}/></>}
         </div>
       })}
     </div>;
   };
 
   // Quẻ block: Thượng / Hạ / Tên
-  const QB=({hex,lv,mv=[],label,w=90})=>{
+  const QB=({hex,lv,label,w=90})=>{
     if(!hex)return null;
     return <div style={{textAlign:'center',cursor:'pointer',flex:1}} onClick={()=>setPopup(hex)}>
       <div style={{fontSize:10,color:P.muted,marginBottom:8,fontWeight:700,letterSpacing:1.5}}>{label}</div>
-      <RHex lv={lv} moving={mv} w={w}/>
+      <RHex lv={lv} w={w}/>
       <div style={{marginTop:10,fontSize:13,color:P.fg,lineHeight:1.3}}>{VIET[hex[3]]||''}</div>
       <div style={{fontSize:13,color:P.fg}}>{VIET[hex[4]]||''}</div>
       <div style={{fontSize:17,fontWeight:700,color:P.accent,marginTop:2}}>{shortQ(hex)}</div>
@@ -308,7 +308,7 @@ export default function App(){
           </div>
           <input type="text" value={qName} onChange={e=>setQName(e.target.value)} placeholder="Tên sự việc"
             style={{width:'100%',padding:12,border:`1px solid ${P.border}`,borderRadius:12,boxSizing:'border-box',fontSize:14,background:P.card,color:P.fg,marginBottom:10}}/>
-          <textarea value={qText} onChange={e=>setQText(e.target.value)} rows={3} placeholder="Sự việc và câu hỏi..."
+          <textarea value={qText} onChange={e=>setQText(e.target.value)} rows={5} placeholder="Sự việc và câu hỏi..."
             style={{width:'100%',padding:12,border:`1px solid ${P.border}`,borderRadius:12,boxSizing:'border-box',fontSize:14,fontFamily:'inherit',resize:'none',background:P.card,color:P.fg,marginBottom:16}}/>
           {!r&&<div style={{textAlign:'center',padding:'20px 0'}}>
             <div style={{fontSize:12,color:P.muted,marginBottom:12}}>Tap để gieo quẻ</div>
@@ -317,7 +317,7 @@ export default function App(){
           {r&&<>
             <div style={{fontSize:11,color:P.muted,textAlign:'center',marginBottom:6}}>{r.ts}{r.lunar?` • ÂL ${r.lunar.day}/${r.lunar.month}/${r.lunar.year}`:''}</div>
             <div style={{display:'flex',justifyContent:'space-evenly',padding:'24px 8px',marginBottom:10,background:P.card,borderRadius:16,border:`1px solid ${P.border}`}}>
-              <QB hex={r.chinh} lv={r.lineValues} mv={r.moving} label="CHÁNH" w={90}/>
+              <QB hex={r.chinh} lv={r.lineValues} label="CHÁNH" w={90}/>
               {r.queHo&&<QB hex={r.queHo} lv={hoLv(r.lineValues)} label="HỘ" w={90}/>}
               {r.bien&&<QB hex={r.bien} lv={bienLv(r.lineValues,r.moving)} label="BIẾN" w={90}/>}
             </div>
@@ -336,12 +336,13 @@ export default function App(){
 
   // ======== NGẪU NHIÊN (pull-down recast) ========
   if(view==='ngaunhien'&&result?.chinh){
+    const doPull=()=>{setPullY(0);setTimeout(castNgauNhien,50)};
     return(
-      <div style={{...wrap,transform:`translateY(${pullY}px)`,transition:pullY===0?'transform .3s':''}}
+      <div style={{...wrap,transform:`translateY(${pullY}px)`,transition:pullY===0?'transform .3s':'none',touchAction:'pan-x'}}
         onTouchStart={e=>{onTS(e);pullRef.current=e.touches[0].clientY}}
-        onTouchMove={e=>{const dy=e.touches[0].clientY-pullRef.current;if(dy>0&&window.scrollY===0)setPullY(Math.min(dy*.4,80))}}
-        onTouchEnd={e=>{onTE(e);if(pullY>50)castNgauNhien();setPullY(0)}}>
-        {pullY>10&&<div style={{textAlign:'center',padding:8,fontSize:12,color:P.accent}}>{pullY>50?'↓ Thả để gieo lại':'↓ Kéo xuống gieo lại'}</div>}
+        onTouchMove={e=>{const dy=e.touches[0].clientY-pullRef.current;if(dy>0){e.preventDefault();setPullY(Math.min(dy*.4,80))}}}
+        onTouchEnd={e=>{onTE(e);if(pullY>50){doPull()}else{setPullY(0)}}}>
+        {pullY>10&&<div style={{textAlign:'center',padding:8,fontSize:12,color:P.accent,fontWeight:600}}>{pullY>50?'↓ Thả để gieo lại':'↓ Kéo xuống gieo lại'}</div>}
         <div style={{maxWidth:600,margin:'0 auto',padding:16}}>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
             <button onClick={goHome} style={{background:'none',border:'none',color:P.accent,fontSize:13,cursor:'pointer',fontWeight:600}}>← Quay lại</button>
@@ -349,11 +350,12 @@ export default function App(){
             <div style={{width:32}}/>
           </div>
           <div style={{display:'flex',justifyContent:'space-evenly',padding:'28px 12px',marginBottom:10,background:P.card,borderRadius:16,border:`1px solid ${P.border}`}}>
-            <QB hex={result.chinh} lv={result.lineValues} mv={result.moving} label="CHÁNH" w={90}/>
+            <QB hex={result.chinh} lv={result.lineValues} label="CHÁNH" w={90}/>
             {result.queHo&&<QB hex={result.queHo} lv={hoLv(result.lineValues)} label="HỘ" w={90}/>}
             {result.bien&&<QB hex={result.bien} lv={bienLv(result.lineValues,result.moving)} label="BIẾN" w={90}/>}
           </div>
-          <div style={{textAlign:'center',color:P.muted,fontSize:12,padding:8}}>Kéo xuống để gieo lại</div>
+          <div style={{textAlign:'center',color:P.muted,fontSize:12,padding:8}}>↓ Kéo xuống để gieo lại</div>
+          <button onClick={castNgauNhien} style={{width:'100%',padding:12,marginTop:8,background:P.card,border:`1px solid ${P.border}`,borderRadius:10,cursor:'pointer',color:P.green,fontWeight:600}}>⚃ Gieo lại</button>
         </div>
         <Sett/><Pop/>
       </div>
@@ -372,13 +374,13 @@ export default function App(){
             <div style={{width:60}}/>
           </div>
           <p style={{fontSize:13,color:P.muted,textAlign:'center',marginBottom:16}}>Nhập dãy số ngẫu nhiên</p>
-          <input type="text" inputMode="numeric" value={specialNum} onChange={e=>setSpecialNum(e.target.value)} placeholder="VD: 7605936789"
+          <input type="text" inputMode="numeric" value={specialNum} onChange={e=>setSpecialNum(e.target.value)} placeholder="12345"
             style={{width:'100%',padding:16,border:`2px solid ${P.blue}`,borderRadius:14,fontSize:24,textAlign:'center',background:P.card,color:P.fg,boxSizing:'border-box',marginBottom:12}}/>
           <button onClick={castDacBiet} style={{width:'100%',padding:14,background:P.blue,color:'#fff',border:'none',borderRadius:12,fontWeight:700,cursor:'pointer',fontSize:16,marginBottom:16}}>Xem Quẻ</button>
           {r&&(
             <div style={{background:P.card,borderRadius:14,border:`1px solid ${P.border}`,padding:16,marginBottom:12}}>
               <div style={{display:'flex',justifyContent:'space-evenly',marginBottom:12}}>
-                <QB hex={r.chinh} lv={r.lineValues} mv={r.moving} label="CHÁNH" w={75}/>
+                <QB hex={r.chinh} lv={r.lineValues} label="CHÁNH" w={75}/>
                 {r.queHo&&<QB hex={r.queHo} lv={hoLv(r.lineValues)} label="HỘ" w={75}/>}
                 {r.bien&&<QB hex={r.bien} lv={bienLv(r.lineValues,r.moving)} label="BIẾN" w={75}/>}
               </div>
@@ -441,7 +443,7 @@ export default function App(){
             {result.question&&<div style={{color:P.muted}}>{result.question}</div>}
           </div>}
           <div style={{display:'flex',justifyContent:'space-evenly',padding:'28px 12px',marginBottom:8,background:P.card,borderRadius:16,border:`1px solid ${P.border}`}}>
-            <QB hex={result.chinh} lv={result.lineValues} mv={result.moving} label="CHÁNH" w={90}/>
+            <QB hex={result.chinh} lv={result.lineValues} label="CHÁNH" w={90}/>
             {result.queHo&&<QB hex={result.queHo} lv={hoLv(result.lineValues)} label="HỘ" w={90}/>}
             {result.bien&&<QB hex={result.bien} lv={bienLv(result.lineValues,result.moving)} label="BIẾN" w={90}/>}
           </div>
