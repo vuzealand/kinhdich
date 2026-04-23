@@ -140,13 +140,15 @@ export default function App(){
   };
 
   const castNgauNhien=()=>{
-    // Generate 6 random yin/yang lines
-    const lv=[];for(let i=0;i<6;i++)lv.push(Math.random()<.5?1:0);
-    // Exactly 1 moving line (random position)
-    const mvIdx=Math.floor(Math.random()*6);
-    const moving=[mvIdx];
-    const lines=lv.map((v,i)=>({value:moving.includes(i)?(v===1?9:6):(v===1?7:8)}));
-    const r=buildResult({chinh:lv2hex(lv),bien:lv2bien(lv,moving),queHo:lv2ho(lv),lines,lineValues:lv,moving},'Ngẫu Nhiên');
+    // Ngẫu Nhiên dùng Mai Hoa: timestamp làm seed
+    // Thượng quái = seed / 8, Hạ quái = seed2 / 8, Hào động = tổng / 6
+    const now=Date.now();
+    const s1=now%100000;           // 5 digits from ms
+    const s2=Math.floor(now/7)%100000;  // shifted digits
+    const upper=s1;
+    const lower=s2;
+    const total=upper+lower;
+    const r=buildResult(mhCalc(upper||1,lower||1,total||1),'Ngẫu Nhiên');
     setResult(r);addHist(r);setLuanResult('');setChatHistory([]);setPhamVi('');setView('ngaunhien');
   };
 
