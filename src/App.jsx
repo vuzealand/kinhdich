@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { TRIGRAMS, HEXAGRAMS, HEXAGRAM_LOOKUP } from "./hexagrams.js";
 import { SYSTEM_PROMPT } from "./system-prompt.js";
+import { QUE_SUMMARY } from "./que-summary.js";
 
 const LINE_NAMES = ['Sơ','Nhị','Tam','Tứ','Ngũ','Thượng'];
 const MH_NUM = {1:'111',2:'011',3:'101',4:'001',5:'110',6:'010',7:'100',8:'000'};
@@ -250,18 +251,27 @@ export default function App(){
   };
 
   // Popup (no Chinese)
-  const Pop=()=>popup&&(
+  const Pop=()=>{
+    if(!popup)return null;
+    const sumKey=popup[1].toUpperCase();
+    const sum=QUE_SUMMARY[sumKey];
+    return(
     <div onClick={()=>setPopup(null)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,.6)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:300,padding:16}}>
-      <div onClick={e=>e.stopPropagation()} style={{background:'#fff',borderRadius:16,maxWidth:380,width:'100%',overflow:'hidden',boxShadow:'0 20px 60px rgba(0,0,0,.25)'}}>
-        <div style={{background:P.accent,padding:'20px 24px',textAlign:'center'}}>
-          <div style={{fontSize:26,fontWeight:700,color:'#fff'}}>{popup[1]}</div>
+      <div onClick={e=>e.stopPropagation()} style={{background:'#fff',borderRadius:16,maxWidth:400,width:'100%',overflow:'hidden',boxShadow:'0 20px 60px rgba(0,0,0,.25)',maxHeight:'80vh',display:'flex',flexDirection:'column'}}>
+        <div style={{background:P.accent,padding:'20px 24px',textAlign:'center',flexShrink:0}}>
+          <div style={{fontSize:24,fontWeight:700,color:'#fff'}}>{popup[1]}</div>
         </div>
-        <div style={{padding:'20px 24px',fontSize:14,lineHeight:1.7,color:'#333'}}>{popup[5]}</div>
-        <div style={{padding:'0 24px 16px',fontSize:12,color:'#999'}}>Thượng: {TRIGRAMS[popup[3]]?.name} ({TRIGRAMS[popup[3]]?.nature}) — Hạ: {TRIGRAMS[popup[4]]?.name} ({TRIGRAMS[popup[4]]?.nature})</div>
-        <button onClick={()=>setPopup(null)} style={{width:'100%',padding:14,background:P.accent,color:'#fff',border:'none',fontSize:15,fontWeight:700,cursor:'pointer'}}>OK</button>
+        <div style={{padding:'20px 24px',overflowY:'auto',flex:1}}>
+          {sum&&<div style={{fontSize:16,fontWeight:700,color:'#c62828',marginBottom:12}}>{sum[0]}.</div>}
+          {sum&&<div style={{fontSize:14,lineHeight:1.7,color:'#333',marginBottom:12}}>{sum[1]}</div>}
+          {!sum&&<div style={{fontSize:14,lineHeight:1.7,color:'#333',marginBottom:12}}>{popup[5]}</div>}
+          <div style={{fontSize:12,color:'#999',borderTop:'1px solid #eee',paddingTop:8}}>Thượng: {TRIGRAMS[popup[3]]?.name} ({TRIGRAMS[popup[3]]?.nature}) — Hạ: {TRIGRAMS[popup[4]]?.name} ({TRIGRAMS[popup[4]]?.nature})</div>
+        </div>
+        <button onClick={()=>setPopup(null)} style={{width:'100%',padding:14,background:P.accent,color:'#fff',border:'none',fontSize:15,fontWeight:700,cursor:'pointer',flexShrink:0}}>OK</button>
       </div>
     </div>
-  );
+    );
+  };
 
   // Settings
   const Sett=()=>showSettings&&(
