@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { TRIGRAMS, HEXAGRAMS, HEXAGRAM_LOOKUP } from "./hexagrams.js";
 import { SYSTEM_PROMPT } from "./system-prompt.js";
 
@@ -92,6 +92,34 @@ export default function App(){
   const[qResult,setQResult]=useState(null);
 
   const toggleDark=()=>{const n=!dark;setDark(n);localStorage.setItem('kd_dark',n?'1':'0')};
+
+  // Knowledge base from cloud
+  const[kbBooks,setKbBooks]=useState([]);
+  const[kbNotes,setKbNotes]=useState([]);
+  useEffect(()=>{
+    fetch('/api/knowledge').then(r=>r.json()).then(d=>{
+      if(d.ok){setKbBooks(d.books||[]);setKbNotes(d.notes||[])}
+    }).catch(()=>{});
+  },[]);
+
+  // Find relevant KB chunks for a quẻ
+  const findKB=(queName)=>{
+    if(!queName)return'';
+    const kw=queName.toLowerCase().split(' ').filter(w=>w.length>1);
+    const all=[...kbBooks,...kbNotes];
+    const scored=all.map(c=>{
+      const t=((c.name||'')+' '+(c.text||'')).toLowerCase();
+      let score=0;
+      kw.forEach(k=>{if(t.includes(k))score+=1});
+      // Exact name match = high score
+      if((c.name||'').toLowerCase().includes(queName.toLowerCase()))score+=10;
+      return{c,score};
+    }).filter(x=>x.score>0).sort((a,b)=>b.score-a.score).slice(0,5);
+    // Always include all user notes
+    const notes=kbNotes.map(n=>`[ghi chú/${n.author||'user'}/${n.name||''}]\n${n.text}`).join('\n---\n');
+    const books=scored.filter(x=>x.c.source!=='user').map(({c})=>`[${c.source||'sách'}/${c.name||''}]\n${c.text}`).join('\n---\n');
+    return [notes,books].filter(Boolean).join('\n---\n');
+  };
   const goHome=()=>{setView('home');setResult(null);setLuanResult('');setChatHistory([]);setDacBietResult(null)};
 
   // Swipe (smooth with visual feedback)
@@ -185,7 +213,11 @@ export default function App(){
   const saveQ=()=>{if(!qResult)return;setSaved(prev=>{const u=[{...qResult,savedAt:new Date().toLocaleString('vi-VN')},...prev];localStorage.setItem('kd_saved',JSON.stringify(u));return u});alert('✓ Đã lưu')};
 
   // ======== AI ========
-  const buildPrompt=()=>{if(!result?.chinh)return'';const ch=result.chinh,uT=TRIGRAMS[ch[3]],lT=TRIGRAMS[ch[4]];let p=`# Gieo Quẻ Kinh Dịch\n`;if(result.question)p+=`**Câu hỏi:** ${result.question}\n`;if(result.name)p+=`**Sự việc:** ${result.name}\n`;if(phamVi)p+=`**Phạm vi:** ${phamVi}\n`;p+=`**${result.method}** • ${result.ts}`;if(result.lunar)p+=` • ÂL ${result.lunar.day}/${result.lunar.month}/${result.lunar.year}`;p+=`\n\n## Quẻ Chánh: ${ch[1]}\n- Thượng: ${uT.name} (${uT.nature}, ${uT.element})\n- Hạ: ${lT.name} (${lT.nature}, ${lT.element})\n- Nghĩa: ${ch[5]}\n`;if(result.moving?.length>0){const mv0=result.moving[0],isUp=mv0>=3;p+=`- **Thể**: ${isUp?lT.name:uT.name} (${isUp?lT.element:uT.element})\n- **Dụng**: ${isUp?uT.name:lT.name} (${isUp?uT.element:lT.element})\n`}p+=`\n## 6 Hào:\n`;result.lines.forEach((l,i)=>{const isM=result.moving.includes(i);p+=`- ${LINE_NAMES[i]}: ${l.value===9?'Lão Dương':l.value===6?'Lão Âm':l.value===7?'Thiếu Dương':'Thiếu Âm'}${isM?' ★ĐỘNG':''}\n`});if(result.queHo)p+=`\n## Quẻ Hộ: ${result.queHo[1]} — ${result.queHo[5]}\n`;if(result.bien)p+=`\n## Quẻ Biến: ${result.bien[1]} — ${result.bien[5]}\n`;p+=`\n---\nLuận giải. Thể/Dụng, Hộ, Biến. Lời khuyên.`;return p};
+  const buildPrompt=()=>{if(!result?.chinh)return'';const ch=result.chinh,uT=TRIGRAMS[ch[3]],lT=TRIGRAMS[ch[4]];let p=`# Gieo Quẻ Kinh Dịch\n`;if(result.question)p+=`**Câu hỏi:** ${result.question}\n`;if(result.name)p+=`**Sự việc:** ${result.name}\n`;if(phamVi)p+=`**Phạm vi:** ${phamVi}\n`;p+=`**${result.method}** • ${result.ts}`;if(result.lunar)p+=` • ÂL ${result.lunar.day}/${result.lunar.month}/${result.lunar.year}`;p+=`\n\n## Quẻ Chánh: ${ch[1]}\n- Thượng: ${uT.name} (${uT.nature}, ${uT.element})\n- Hạ: ${lT.name} (${lT.nature}, ${lT.element})\n- Nghĩa: ${ch[5]}\n`;if(result.moving?.length>0){const mv0=result.moving[0],isUp=mv0>=3;p+=`- **Thể**: ${isUp?lT.name:uT.name} (${isUp?lT.element:uT.element})\n- **Dụng**: ${isUp?uT.name:lT.name} (${isUp?uT.element:lT.element})\n`}p+=`\n## 6 Hào:\n`;result.lines.forEach((l,i)=>{const isM=result.moving.includes(i);p+=`- ${LINE_NAMES[i]}: ${l.value===9?'Lão Dương':l.value===6?'Lão Âm':l.value===7?'Thiếu Dương':'Thiếu Âm'}${isM?' ★ĐỘNG':''}\n`});if(result.queHo)p+=`\n## Quẻ Hộ: ${result.queHo[1]} — ${result.queHo[5]}\n`;if(result.bien)p+=`\n## Quẻ Biến: ${result.bien[1]} — ${result.bien[5]}\n`;
+  // KB references
+  const refs=[findKB(ch[1]),result.queHo?findKB(result.queHo[1]):'',result.bien?findKB(result.bien[1]):''].filter(Boolean).join('\n---\n');
+  if(refs)p+=`\n[REFERENCE]\n${refs}\n[/REFERENCE]\n`;
+  p+=`\n---\nLuận giải${result.question?' cho câu hỏi':''}. Phân tích Thể/Dụng sinh khắc, Quẻ Hộ (nội tình), Quẻ Biến (kết quả). Lời khuyên cụ thể.`;return p};
   const callAI=async(msgs,onS)=>{const res=await fetch('/api/luan-giai',{method:'POST',headers:{'Content-Type':'application/json','x-kb-secret':kbSecret,'x-user':userName||'anon'},body:JSON.stringify({model:aiModel,max_tokens:4096,system:SYSTEM_PROMPT,messages:msgs})});if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(e.error||'API error')}const reader=res.body.getReader(),dec=new TextDecoder();let full='',buf='';while(true){const{done,value}=await reader.read();if(done)break;buf+=dec.decode(value,{stream:true});const ls=buf.split('\n');buf=ls.pop()||'';for(const l of ls){if(!l.startsWith('data: '))continue;try{const o=JSON.parse(l.slice(6));if(o.type==='content_block_delta'&&o.delta?.text){full+=o.delta.text;onS?.(full)}}catch{}}}return full};
   const luanQue=async()=>{if(!kbSecret){setShowSettings(true);return}setLuanResult('');setLuanLoading(true);setChatHistory([]);try{const p=buildPrompt();const t=await callAI([{role:'user',content:p}],setLuanResult);setChatHistory([{role:'user',content:p},{role:'assistant',content:t}])}catch(e){setLuanResult('❌ '+e.message)}finally{setLuanLoading(false)}};
   const sendFU=async()=>{if(!followUp.trim()||luanLoading)return;const m={role:'user',content:followUp},h=[...chatHistory,m];setChatHistory(h);setFollowUp('');setLuanLoading(true);try{const t=await callAI(h,p=>setChatHistory([...h,{role:'assistant',content:p}]));setChatHistory([...h,{role:'assistant',content:t}])}catch(e){setChatHistory([...h,{role:'assistant',content:'❌ '+e.message}])}finally{setLuanLoading(false)}};
