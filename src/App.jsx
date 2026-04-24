@@ -336,7 +336,7 @@ export default function App(){
             <MB icon="✦" label="Đặc Biệt" color={P.blue} onClick={()=>{setSpecialNum('');setDacBietResult(null);setView('dacbiet')}}/>
           </div>
         </div>
-        <Sett/><Pop/>
+        {Sett()}{Pop()}
       </div>
     );
   }
@@ -374,7 +374,7 @@ export default function App(){
             </div>
           </>}
           <ListModal show={showSaved} items={saved} title="📋 Đã Lưu" onClose={()=>setShowSaved(false)} empty="Chưa lưu" onSelect={h=>{setQResult(h);setQName(h.name||'');setQText(h.question||'');setShowSaved(false)}} onRemove={id=>{const u=saved.filter(s=>s.id!==id);setSaved(u);localStorage.setItem('kd_saved',JSON.stringify(u))}}/>
-          <Pop/>
+          {Pop()}
         </div>
       </div>
     );
@@ -413,7 +413,7 @@ export default function App(){
           <div style={{textAlign:'center',color:P.muted,fontSize:12,padding:8}}>↓ Kéo xuống để gieo lại</div>
           <button onClick={castNgauNhien} style={{width:'100%',padding:12,marginTop:8,background:P.card,border:`1px solid ${P.border}`,borderRadius:10,cursor:'pointer',color:P.green,fontWeight:600}}>⚃ Gieo lại</button>
         </div>
-        <Sett/><Pop/>
+        {Sett()}{Pop()}
       </div>
     );
   }
@@ -444,7 +444,7 @@ export default function App(){
             </div>
           )}
         </div>
-        <Pop/>
+        {Pop()}
       </div>
     );
   }
@@ -534,7 +534,7 @@ export default function App(){
               </div>}
             </div>
           )}
-          <Sett/><Pop/>
+          {Sett()}{Pop()}
         </div>
       </div>
     );
