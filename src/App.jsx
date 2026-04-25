@@ -91,6 +91,7 @@ export default function App(){
   const[qName,setQName]=useState('');
   const[qText,setQText]=useState('');
   const[qResult,setQResult]=useState(null);
+  const[spinning,setSpinning]=useState(false);
 
   const toggleDark=()=>{const n=!dark;setDark(n);localStorage.setItem('kd_dark',n?'1':'0')};
 
@@ -203,15 +204,40 @@ export default function App(){
   };
 
   const castQuestion=()=>{
-    const now=new Date(),lu=s2l(now.getDate(),now.getMonth()+1,now.getFullYear()),hi=hIdx(now.getHours())+1;
-    const sec=now.getSeconds()+1,ms=now.getMilliseconds()+1;
-    const us=lu.year+lu.month+lu.day+hi;
-    const ls=us+sec;
-    const r=buildResult(mhCalc(us,ls,ls+ms),'Gieo Quẻ',qText,qName);
-    setQResult(r);addHist(r);
+    setSpinning(true);
+    setTimeout(()=>{
+      const now=new Date(),lu=s2l(now.getDate(),now.getMonth()+1,now.getFullYear()),hi=hIdx(now.getHours())+1;
+      const sec=now.getSeconds()+1,ms=now.getMilliseconds()+1;
+      const us=lu.year+lu.month+lu.day+hi;
+      const ls=us+sec;
+      const r=buildResult(mhCalc(us,ls,ls+ms),'Gieo Quẻ',qText,qName);
+      setQResult(r);addHist(r);setSpinning(false);
+    },1200);
   };
 
   const saveQ=()=>{if(!qResult)return;setSaved(prev=>{const u=[{...qResult,savedAt:new Date().toLocaleString('vi-VN')},...prev];localStorage.setItem('kd_saved',JSON.stringify(u));return u});alert('✓ Đã lưu')};
+
+  // Share result as text
+  const shareResult=(r)=>{
+    if(!r?.chinh)return;
+    const uT=TRIGRAMS[r.chinh[3]],lT=TRIGRAMS[r.chinh[4]];
+    const mv0=r.moving?.[0];const isUp=mv0>=3;
+    const the=isUp?lT:uT,dung=isUp?uT:lT;
+    let text=`☯ KINH DỊCH\n`;
+    if(r.name)text+=`${r.name}\n`;
+    if(r.question)text+=`Câu hỏi: ${r.question}\n`;
+    text+=`${r.method} • ${r.ts}\n\n`;
+    text+=`▸ Chánh: ${r.chinh[1]}\n`;
+    if(r.queHo)text+=`▸ Hộ: ${r.queHo[1]}\n`;
+    if(r.bien)text+=`▸ Biến: ${r.bien[1]}\n`;
+    if(r.moving?.length)text+=`\nThể: ${the.name} (${the.element}) — Dụng: ${dung.name} (${dung.element})\n`;
+    text+=`\nHào động: ${r.moving?.map(i=>LINE_NAMES[i]).join(', ')||'không'}\n`;
+    if(navigator.share){
+      navigator.share({title:'Kinh Dịch',text}).catch(()=>{});
+    }else{
+      navigator.clipboard.writeText(text).then(()=>alert('✓ Đã copy')).catch(()=>{});
+    }
+  };
 
   // ======== AI ========
   const buildPrompt=()=>{if(!result?.chinh)return'';const ch=result.chinh,uT=TRIGRAMS[ch[3]],lT=TRIGRAMS[ch[4]];let p=`# Gieo Quẻ Kinh Dịch\n`;if(result.question)p+=`**Câu hỏi:** ${result.question}\n`;if(result.name)p+=`**Sự việc:** ${result.name}\n`;if(phamVi)p+=`**Phạm vi:** ${phamVi}\n`;p+=`**${result.method}** • ${result.ts}`;if(result.lunar)p+=` • ÂL ${result.lunar.day}/${result.lunar.month}/${result.lunar.year}`;p+=`\n\n## Quẻ Chánh: ${ch[1]}\n- Thượng: ${uT.name} (${uT.nature}, ${uT.element})\n- Hạ: ${lT.name} (${lT.nature}, ${lT.element})\n- Nghĩa: ${ch[5]}\n`;if(result.moving?.length>0){const mv0=result.moving[0],isUp=mv0>=3;p+=`- **Thể**: ${isUp?lT.name:uT.name} (${isUp?lT.element:uT.element})\n- **Dụng**: ${isUp?uT.name:lT.name} (${isUp?uT.element:lT.element})\n`}p+=`\n## 6 Hào:\n`;result.lines.forEach((l,i)=>{const isM=result.moving.includes(i);p+=`- ${LINE_NAMES[i]}: ${l.value===9?'Lão Dương':l.value===6?'Lão Âm':l.value===7?'Thiếu Dương':'Thiếu Âm'}${isM?' ★ĐỘNG':''}\n`});if(result.queHo)p+=`\n## Quẻ Hộ: ${result.queHo[1]} — ${result.queHo[5]}\n`;if(result.bien)p+=`\n## Quẻ Biến: ${result.bien[1]} — ${result.bien[5]}\n`;
@@ -401,10 +427,11 @@ export default function App(){
           <textarea value={qText} onChange={e=>setQText(e.target.value)} rows={5} placeholder="Sự việc và câu hỏi..."
             style={{width:'100%',padding:12,border:`1px solid ${P.border}`,borderRadius:12,boxSizing:'border-box',fontSize:14,fontFamily:'inherit',resize:'none',background:P.card,color:P.fg,marginBottom:16}}/>
           {!r&&<div style={{textAlign:'center',padding:'20px 0'}}>
-            <div style={{fontSize:12,color:P.muted,marginBottom:12}}>Tap để gieo quẻ</div>
-            <div onClick={castQuestion} style={{width:140,height:140,borderRadius:'50%',background:`radial-gradient(circle at 40% 40%, ${P.accentBg}, ${P.accent})`,display:'inline-flex',alignItems:'center',justifyContent:'center',cursor:'pointer',boxShadow:`0 6px 24px ${P.accent}30`,fontSize:56,color:'#fff',userSelect:'none'}}>☯</div>
+            <div style={{fontSize:12,color:P.muted,marginBottom:12}}>{spinning?'Đang gieo quẻ...':'Tap để gieo quẻ'}</div>
+            <div onClick={spinning?undefined:castQuestion} className={spinning?'spin-active':''}
+              style={{width:140,height:140,borderRadius:'50%',background:`radial-gradient(circle at 40% 40%, ${P.accentBg}, ${P.accent})`,display:'inline-flex',alignItems:'center',justifyContent:'center',cursor:spinning?'default':'pointer',boxShadow:`0 6px 24px ${P.accent}30`,fontSize:56,color:'#fff',userSelect:'none',opacity:spinning?.8:1}}>☯</div>
           </div>}
-          {r&&<>
+          {r&&<div className="fade-in">
             <div style={{fontSize:11,color:P.muted,textAlign:'center',marginBottom:6}}>{r.ts}{r.lunar?` • ÂL ${r.lunar.day}/${r.lunar.month}/${r.lunar.year}`:''}</div>
             <div style={{display:'flex',justifyContent:'space-evenly',padding:'24px 8px',marginBottom:10,background:P.card,borderRadius:16,border:`1px solid ${P.border}`}}>
               <QB hex={r.chinh} lv={r.lineValues} hl={r.moving} label="CHÁNH" w={90}/>
@@ -414,10 +441,11 @@ export default function App(){
             <TheDung r={r}/>
             <div style={{display:'flex',gap:8,marginBottom:10}}>
               <button onClick={saveQ} style={{flex:1,padding:10,background:P.card,border:`1px solid ${P.border}`,borderRadius:10,cursor:'pointer',fontWeight:600,color:P.accent}}>💾 Lưu</button>
-              <button onClick={()=>setQResult(null)} style={{flex:1,padding:10,background:P.card,border:`1px solid ${P.border}`,borderRadius:10,cursor:'pointer',fontWeight:600,color:P.muted}}>Gieo lại</button>
-              <button onClick={()=>{setResult(r);setView('result')}} style={{flex:2,padding:10,background:P.accent,color:'#fff',border:'none',borderRadius:10,fontWeight:700,cursor:'pointer'}}>🔮 Luận Giải</button>
+              <button onClick={()=>shareResult(r)} style={{flex:1,padding:10,background:P.card,border:`1px solid ${P.border}`,borderRadius:10,cursor:'pointer',fontWeight:600,color:P.teal}}>↗ Chia sẻ</button>
+              <button onClick={()=>{setSpinning(false);setQResult(null)}} style={{flex:1,padding:10,background:P.card,border:`1px solid ${P.border}`,borderRadius:10,cursor:'pointer',fontWeight:600,color:P.muted}}>Gieo lại</button>
             </div>
-          </>}
+            <button onClick={()=>{setResult(r);setView('result')}} style={{width:'100%',padding:12,background:P.accent,color:'#fff',border:'none',borderRadius:10,fontWeight:700,cursor:'pointer',fontSize:15,marginBottom:10}}>🔮 Luận Giải AI</button>
+          </div>}
           <ListModal show={showSaved} items={saved} title="📋 Đã Lưu" onClose={()=>setShowSaved(false)} empty="Chưa lưu" onSelect={h=>{setQResult(h);setQName(h.name||'');setQText(h.question||'');setShowSaved(false)}} onRemove={id=>{const u=saved.filter(s=>s.id!==id);setSaved(u);localStorage.setItem('kd_saved',JSON.stringify(u))}}/>
           {Pop()}
         </div>
@@ -448,7 +476,7 @@ export default function App(){
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
             <button onClick={goHome} style={{background:'none',border:'none',color:P.accent,fontSize:13,cursor:'pointer',fontWeight:600}}>← Quay lại</button>
             <span style={{fontSize:12,color:P.muted}}>Ngẫu Nhiên • {result.ts}</span>
-            <div style={{width:32}}/>
+            <button onClick={()=>shareResult(result)} style={{width:32,height:32,borderRadius:8,border:`1px solid ${P.border}`,background:P.card,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',fontSize:14}}>↗</button>
           </div>
           <div style={{display:'flex',justifyContent:'space-evenly',padding:'28px 12px',marginBottom:10,background:P.card,borderRadius:16,border:`1px solid ${P.border}`}}>
             <QB hex={result.chinh} lv={result.lineValues} hl={result.moving} label="CHÁNH" w={90}/>
@@ -538,7 +566,10 @@ export default function App(){
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
             <button onClick={goHome} style={{background:'none',border:'none',color:P.accent,fontSize:13,cursor:'pointer',fontWeight:600}}>← Quay lại</button>
             <span style={{fontSize:12,color:P.muted}}>{result.method} • {result.ts}</span>
-            <button onClick={()=>setShowSettings(true)} style={{width:32,height:32,borderRadius:8,border:`1px solid ${P.border}`,background:P.card,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',fontSize:14}}>⚙️</button>
+            <div style={{display:'flex',gap:4}}>
+              <button onClick={()=>shareResult(result)} style={{width:32,height:32,borderRadius:8,border:`1px solid ${P.border}`,background:P.card,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',fontSize:14}}>↗</button>
+              <button onClick={()=>setShowSettings(true)} style={{width:32,height:32,borderRadius:8,border:`1px solid ${P.border}`,background:P.card,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',fontSize:14}}>⚙️</button>
+            </div>
           </div>
           {result.lunar&&<div style={{fontSize:11,color:P.muted,textAlign:'center',marginBottom:4}}>ÂL {result.lunar.day}/{result.lunar.month}/{result.lunar.year}</div>}
           {(result.question||result.name)&&<div style={{padding:10,background:P.card,borderRadius:10,marginBottom:10,fontSize:13,border:`1px solid ${P.border}`}}>
