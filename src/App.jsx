@@ -250,6 +250,40 @@ export default function App(){
     </div>;
   };
 
+  // Thể/Dụng display
+  const SINH={'Kim':'Thủy','Thủy':'Mộc','Mộc':'Hỏa','Hỏa':'Thổ','Thổ':'Kim'};
+  const KHAC={'Kim':'Mộc','Mộc':'Thổ','Thổ':'Thủy','Thủy':'Hỏa','Hỏa':'Kim'};
+  const EL_CLR={'Hỏa':'#d32f2f','Kim':'#d4a017','Mộc':'#2e7d32','Thủy':'#0d47a1','Thổ':'#6d4c41'};
+  const TheDung=({r})=>{
+    if(!r?.chinh||!r.moving?.length)return null;
+    const mv0=r.moving[0];
+    const isUp=mv0>=3;
+    const uT=TRIGRAMS[r.chinh[3]],lT=TRIGRAMS[r.chinh[4]];
+    const the=isUp?lT:uT, dung=isUp?uT:lT;
+    const theEl=the.element, dungEl=dung.element;
+    let rel='',relClr=P.muted;
+    if(SINH[dungEl]===theEl){rel='Dụng sinh Thể → CÁT';relClr='#2e7d32'}
+    else if(SINH[theEl]===dungEl){rel='Thể sinh Dụng → Hao';relClr='#d4a017'}
+    else if(KHAC[dungEl]===theEl){rel='Dụng khắc Thể → HUNG';relClr='#d32f2f'}
+    else if(KHAC[theEl]===dungEl){rel='Thể khắc Dụng → Tài';relClr='#0d47a1'}
+    else if(theEl===dungEl){rel='Thể Dụng tỷ hòa → Bình';relClr=P.accent}
+    return(
+      <div style={{display:'flex',justifyContent:'center',gap:16,padding:'10px 12px',marginBottom:8,background:P.card,borderRadius:10,border:`1px solid ${P.border}`,fontSize:13}}>
+        <div style={{textAlign:'center'}}>
+          <div style={{fontSize:10,color:P.muted,fontWeight:600}}>THỂ</div>
+          <div style={{fontWeight:700,color:EL_CLR[theEl]||P.fg}}>{the.name} ({theEl})</div>
+        </div>
+        <div style={{textAlign:'center',alignSelf:'center'}}>
+          <div style={{fontSize:12,fontWeight:700,color:relClr}}>{rel}</div>
+        </div>
+        <div style={{textAlign:'center'}}>
+          <div style={{fontSize:10,color:P.muted,fontWeight:600}}>DỤNG</div>
+          <div style={{fontWeight:700,color:EL_CLR[dungEl]||P.fg}}>{dung.name} ({dungEl})</div>
+        </div>
+      </div>
+    );
+  };
+
   // Popup (no Chinese)
   const Pop=()=>{
     if(!popup)return null;
@@ -257,15 +291,15 @@ export default function App(){
     const sum=QUE_SUMMARY[sumKey];
     return(
     <div onClick={()=>setPopup(null)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,.6)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:300,padding:16}}>
-      <div onClick={e=>e.stopPropagation()} style={{background:'#fff',borderRadius:16,maxWidth:400,width:'100%',overflow:'hidden',boxShadow:'0 20px 60px rgba(0,0,0,.25)',maxHeight:'80vh',display:'flex',flexDirection:'column'}}>
+      <div onClick={e=>e.stopPropagation()} style={{background:P.card,borderRadius:16,maxWidth:400,width:'100%',overflow:'hidden',boxShadow:'0 20px 60px rgba(0,0,0,.25)',maxHeight:'80vh',display:'flex',flexDirection:'column'}}>
         <div style={{background:P.accent,padding:'20px 24px',textAlign:'center',flexShrink:0}}>
           <div style={{fontSize:24,fontWeight:700,color:'#fff'}}>{popup[1]}</div>
         </div>
         <div style={{padding:'20px 24px',overflowY:'auto',flex:1}}>
-          {sum&&<div style={{fontSize:16,fontWeight:700,color:'#c62828',marginBottom:12}}>{sum[0]}.</div>}
-          {sum&&<div style={{fontSize:14,lineHeight:1.7,color:'#333',marginBottom:12}}>{sum[1]}</div>}
-          {!sum&&<div style={{fontSize:14,lineHeight:1.7,color:'#333',marginBottom:12}}>{popup[5]}</div>}
-          <div style={{fontSize:12,color:'#999',borderTop:'1px solid #eee',paddingTop:8}}>Thượng: {TRIGRAMS[popup[3]]?.name} ({TRIGRAMS[popup[3]]?.nature}) — Hạ: {TRIGRAMS[popup[4]]?.name} ({TRIGRAMS[popup[4]]?.nature})</div>
+          {sum&&<div style={{fontSize:16,fontWeight:700,color:dark?'#ef5350':'#c62828',marginBottom:12}}>{sum[0]}.</div>}
+          {sum&&<div style={{fontSize:14,lineHeight:1.7,color:P.fg,marginBottom:12}}>{sum[1]}</div>}
+          {!sum&&<div style={{fontSize:14,lineHeight:1.7,color:P.fg,marginBottom:12}}>{popup[5]}</div>}
+          <div style={{fontSize:12,color:P.muted,borderTop:`1px solid ${P.border}`,paddingTop:8}}>Thượng: {TRIGRAMS[popup[3]]?.name} ({TRIGRAMS[popup[3]]?.nature}) — Hạ: {TRIGRAMS[popup[4]]?.name} ({TRIGRAMS[popup[4]]?.nature})</div>
         </div>
         <button onClick={()=>setPopup(null)} style={{width:'100%',padding:14,background:P.accent,color:'#fff',border:'none',fontSize:15,fontWeight:700,cursor:'pointer',flexShrink:0}}>OK</button>
       </div>
@@ -377,6 +411,7 @@ export default function App(){
               {r.queHo&&<QB hex={r.queHo} lv={hoLv(r.lineValues)} label="HỘ" w={90}/>}
               {r.bien&&<QB hex={r.bien} lv={bienLv(r.lineValues,r.moving)} label="BIẾN" w={90}/>}
             </div>
+            <TheDung r={r}/>
             <div style={{display:'flex',gap:8,marginBottom:10}}>
               <button onClick={saveQ} style={{flex:1,padding:10,background:P.card,border:`1px solid ${P.border}`,borderRadius:10,cursor:'pointer',fontWeight:600,color:P.accent}}>💾 Lưu</button>
               <button onClick={()=>setQResult(null)} style={{flex:1,padding:10,background:P.card,border:`1px solid ${P.border}`,borderRadius:10,cursor:'pointer',fontWeight:600,color:P.muted}}>Gieo lại</button>
@@ -420,6 +455,7 @@ export default function App(){
             {result.queHo&&<QB hex={result.queHo} lv={hoLv(result.lineValues)} label="HỘ" w={90}/>}
             {result.bien&&<QB hex={result.bien} lv={bienLv(result.lineValues,result.moving)} label="BIẾN" w={90}/>}
           </div>
+          <TheDung r={result}/>
           <div style={{textAlign:'center',color:P.muted,fontSize:12,padding:8}}>↓ Kéo xuống để gieo lại</div>
           <button onClick={castNgauNhien} style={{width:'100%',padding:12,marginTop:8,background:P.card,border:`1px solid ${P.border}`,borderRadius:10,cursor:'pointer',color:P.green,fontWeight:600}}>⚃ Gieo lại</button>
         </div>
@@ -450,6 +486,7 @@ export default function App(){
                 {r.queHo&&<QB hex={r.queHo} lv={hoLv(r.lineValues)} label="HỘ" w={75}/>}
                 {r.bien&&<QB hex={r.bien} lv={bienLv(r.lineValues,r.moving)} label="BIẾN" w={75}/>}
               </div>
+              <TheDung r={r}/>
               <button onClick={()=>{setSpecialNum('');setDacBietResult(null)}} style={{width:'100%',padding:10,background:P.bg,border:`1px solid ${P.border}`,borderRadius:8,cursor:'pointer',color:P.blue,fontWeight:600}}>Gieo tiếp số khác</button>
             </div>
           )}
@@ -513,6 +550,7 @@ export default function App(){
             {result.queHo&&<QB hex={result.queHo} lv={hoLv(result.lineValues)} label="HỘ" w={90}/>}
             {result.bien&&<QB hex={result.bien} lv={bienLv(result.lineValues,result.moving)} label="BIẾN" w={90}/>}
           </div>
+          <TheDung r={result}/>
           <details style={{marginBottom:10}}>
             <summary style={{fontSize:12,color:P.muted,cursor:'pointer',padding:'6px 0'}}>▸ Chi tiết 6 hào</summary>
             <div style={{padding:10,background:P.card,borderRadius:8,border:`1px solid ${P.border}`,fontSize:12}}>
