@@ -24,20 +24,100 @@ function mhCalc(u,l,t){const uu=((u-1)%8)+1,ll=((l-1)%8)+1,mv=((t-1)%6);const uK
 function nowTS(){const d=new Date();return`${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')} ${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`}
 function shortQ(hex){if(!hex)return'';const p=hex[1].split(' ');return p.length>2?p.slice(2).join(' '):hex[1]}
 
-// SVG Icons
+// SVG Icons (utility)
 const Icon=({d,size=20,color='currentColor'})=><svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d={d}/></svg>;
 const ICONS={
-  thoi:'M12 2v10l4.5 4.5 M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20',
-  khac:'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20 M12 6v6l3 3 M16 2l2 4 M8 2L6 6',
-  giay:'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20 M12 6v6 M12 12l4 2',
-  ngaunhien:'M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2 M8 8h0 M16 8h0 M8 16h0 M16 16h0 M12 12h0',
-  nhap:'M4 6h16 M4 10h16 M4 14h16 M4 18h16',
-  dacbiet:'M7 20l5-16 5 16 M4 12h16',
   back:'M15 18l-6-6 6-6',
   settings:'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6 M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1',
   share:'M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8 M16 6l-4-4-4 4 M12 2v13',
   save:'M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2 M17 21v-8H7v8 M7 3v5h8',
   list:'M8 6h13 M8 12h13 M8 18h13 M3 6h0 M3 12h0 M3 18h0',
+};
+
+// Rich menu icons (v1 design)
+const MI=({type,size=48})=>{
+  const s=size,g='#c8a45c',g2='#8b6b3a';
+  const sv=(children)=><svg width={s} height={s} viewBox="-30 -30 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">{children}</svg>;
+  if(type==='thoi') return sv(<g>
+    <circle cx="0" cy="0" r="24" stroke={g} strokeWidth="1.6"/>
+    {/* Prominent hour markers at 12,3,6,9 */}
+    <line x1="0" y1="-20" x2="0" y2="-24" stroke={g} strokeWidth="2" strokeLinecap="round"/>
+    <line x1="20" y1="0" x2="24" y2="0" stroke={g} strokeWidth="2" strokeLinecap="round"/>
+    <line x1="0" y1="20" x2="0" y2="24" stroke={g} strokeWidth="2" strokeLinecap="round"/>
+    <line x1="-20" y1="0" x2="-24" y2="0" stroke={g} strokeWidth="2" strokeLinecap="round"/>
+    {/* Small dots for other hours */}
+    {[30,60,120,150,210,240,300,330].map(a=><circle key={a} cx={21*Math.cos((a-90)*Math.PI/180)} cy={21*Math.sin((a-90)*Math.PI/180)} r=".8" fill={g} opacity=".4"/>)}
+    {/* Hour hand pointing at ~10 */}
+    <line x1="0" y1="0" x2="-8" y2="-12" stroke={g} strokeWidth="2.5" strokeLinecap="round"/>
+    {/* Minute hand pointing at ~2 */}
+    <line x1="0" y1="0" x2="10" y2="-6" stroke={g2} strokeWidth="1.5" strokeLinecap="round"/>
+    <circle cx="0" cy="0" r="2.5" fill={g}/>
+  </g>);
+  if(type==='khac') return sv(<g>
+    {/* Hourglass shape — completely different silhouette */}
+    <line x1="-16" y1="-22" x2="16" y2="-22" stroke={g} strokeWidth="2.5" strokeLinecap="round"/>
+    <line x1="-16" y1="22" x2="16" y2="22" stroke={g} strokeWidth="2.5" strokeLinecap="round"/>
+    <path d="M-14 -22 L-14 -10 Q-14 0 0 0 Q14 0 14 -10 L14 -22" fill="none" stroke={g} strokeWidth="1.4"/>
+    <path d="M-14 22 L-14 10 Q-14 0 0 0 Q14 0 14 10 L14 22" fill="none" stroke={g} strokeWidth="1.4"/>
+    {/* Sand top */}
+    <path d="M-8 -16 L-8 -10 Q-8 -4 0 -2 Q8 -4 8 -10 L8 -16" fill={g} opacity=".1"/>
+    {/* Sand bottom */}
+    <path d="M-10 18 Q-10 12 0 10 Q10 12 10 18 L10 20 L-10 20Z" fill={g} opacity=".15"/>
+    {/* Sand stream */}
+    <line x1="0" y1="-2" x2="0" y2="8" stroke={g} strokeWidth=".8" opacity=".4"/>
+    <circle cx="0" cy="4" r=".8" fill={g} opacity=".5"/>
+  </g>);
+  if(type==='giay') return sv(<g>
+    {/* Water drop — khoảnh khắc */}
+    <path d="M0 -24 Q-8 -10 -8 -2 A8 8 0 0 0 8 -2 Q8 -10 0 -24Z" fill={g} opacity=".12" stroke={g} strokeWidth="1.3"/>
+    {/* Highlight on drop */}
+    <path d="M-3 -8 Q-1 -12 0 -14" fill="none" stroke={g} strokeWidth=".8" opacity=".5" strokeLinecap="round"/>
+    {/* Ripple rings */}
+    <ellipse cx="0" cy="10" rx="10" ry="3.5" fill="none" stroke={g} strokeWidth="1" opacity=".5"/>
+    <ellipse cx="0" cy="13" rx="18" ry="5.5" fill="none" stroke={g} strokeWidth=".7" opacity=".3"/>
+    <ellipse cx="0" cy="16" rx="24" ry="7" fill="none" stroke={g} strokeWidth=".4" opacity=".15"/>
+    {/* Impact dot */}
+    <circle cx="0" cy="8" r="1.5" fill={g} opacity=".6"/>
+  </g>);
+  if(type==='ngaunhien') return sv(<g>
+    <circle cx="-10" cy="6" r="15" stroke={g2} strokeWidth="1" opacity=".45"/>
+    <rect x="-14" y="3" width="8" height="6" rx=".8" fill="none" stroke={g2} strokeWidth=".7" opacity=".45"/>
+    <circle cx="10" cy="6" r="15" stroke={g2} strokeWidth="1" opacity=".55"/>
+    <rect x="6" y="3" width="8" height="6" rx=".8" fill="none" stroke={g2} strokeWidth=".7" opacity=".55"/>
+    <circle cx="0" cy="-8" r="16" stroke={g} strokeWidth="1.5"/>
+    <circle cx="0" cy="-8" r="12" stroke={g} strokeWidth=".4" opacity=".3"/>
+    <rect x="-4.5" y="-11.5" width="9" height="7" rx=".8" fill="none" stroke={g} strokeWidth="1"/>
+    <circle cx="0" cy="-20" r="1" fill={g} opacity=".4"/>
+    <circle cx="0" cy="4" r="1" fill={g} opacity=".4"/>
+    <circle cx="-12" cy="-8" r="1" fill={g} opacity=".4"/>
+    <circle cx="12" cy="-8" r="1" fill={g} opacity=".4"/>
+  </g>);
+  if(type==='nhap') return sv(<g strokeLinecap="round">
+    <line x1="-20" y1="-20" x2="20" y2="-20" stroke={g} strokeWidth="3"/>
+    <line x1="-20" y1="-10" x2="-3" y2="-10" stroke={g} strokeWidth="2.5" opacity=".85"/>
+    <line x1="3" y1="-10" x2="20" y2="-10" stroke={g} strokeWidth="2.5" opacity=".85"/>
+    <line x1="-20" y1="0" x2="20" y2="0" stroke={g} strokeWidth="3"/>
+    <line x1="-20" y1="10" x2="-3" y2="10" stroke={g} strokeWidth="2.5" opacity=".85"/>
+    <line x1="3" y1="10" x2="20" y2="10" stroke={g} strokeWidth="2.5" opacity=".85"/>
+    <line x1="-20" y1="20" x2="20" y2="20" stroke={g} strokeWidth="3"/>
+    <path d="M24-6l3 4-3 4" fill="none" stroke={g2} strokeWidth="1" opacity=".6"/>
+  </g>);
+  if(type==='dacbiet') return sv(<g>
+    <circle cx="0" cy="-18" r="3" fill={g} opacity=".7"/>
+    <circle cx="16" cy="0" r="2.5" fill={g} opacity=".5"/>
+    <circle cx="0" cy="18" r="3" fill={g} opacity=".7"/>
+    <circle cx="-16" cy="0" r="2.5" fill={g} opacity=".5"/>
+    <circle cx="0" cy="0" r="3.5" fill={g} opacity=".9"/>
+    <line x1="0" y1="-14" x2="14" y2="0" stroke={g} strokeWidth=".5" opacity=".25"/>
+    <line x1="14" y1="0" x2="0" y2="14" stroke={g} strokeWidth=".5" opacity=".25"/>
+    <line x1="0" y1="14" x2="-14" y2="0" stroke={g} strokeWidth=".5" opacity=".25"/>
+    <line x1="-14" y1="0" x2="0" y2="-14" stroke={g} strokeWidth=".5" opacity=".25"/>
+    <circle cx="10" cy="-12" r="1.5" fill={g2} opacity=".35"/>
+    <circle cx="-10" cy="12" r="1.5" fill={g2} opacity=".35"/>
+    <circle cx="10" cy="12" r="1.5" fill={g2} opacity=".35"/>
+    <circle cx="-10" cy="-12" r="1.5" fill={g2} opacity=".35"/>
+  </g>);
+  return null;
 };
 
 // Yin-Yang SVG component
@@ -176,7 +256,7 @@ export default function App(){
         {grid.map(([icon,label,color])=>(
           <button key={icon} onClick={()=>icon==='nhap'?setView('nhap'):icon==='dacbiet'?(() =>{setSpecialNum('');setDacBietResult(null);setView('dacbiet')})():icon==='ngaunhien'?castNgauNhien():castMH(icon)}
             style={{padding:'22px 8px',background:T.card,border:'none',borderRadius:14,textAlign:'center',display:'flex',flexDirection:'column',alignItems:'center',gap:8,boxShadow:T.shadow}}>
-            <div style={{width:44,height:44,borderRadius:12,background:color+'12',display:'flex',alignItems:'center',justifyContent:'center'}}><Icon d={ICONS[icon]} size={22} color={color}/></div>
+            <MI type={icon} size={48}/>
             <div style={{fontSize:12,fontWeight:600,color}}>{label}</div>
           </button>
         ))}
