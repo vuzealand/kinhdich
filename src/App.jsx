@@ -18,9 +18,12 @@ function hoLv(lv){return[lv[1],lv[2],lv[3],lv[2],lv[3],lv[4]]}
 function jdn(d,m,y){let a=Math.floor((14-m)/12),yy=y+4800-a,mm=m+12*a-3;let jd=d+Math.floor((153*mm+2)/5)+365*yy+Math.floor(yy/4)-Math.floor(yy/100)+Math.floor(yy/400)-32045;if(jd<2299161)jd=d+Math.floor((153*mm+2)/5)+365*yy+Math.floor(yy/4)-32083;return jd}
 function nmJD(k){let T=k/1236.85,T2=T*T,r=Math.PI/180;let J=2415020.75933+29.53058868*k+.0001178*T2+.00033*Math.sin((166.56+132.87*T)*r);let M=359.2242+29.10535608*k,Mp=306.0253+385.81691806*k+.0107306*T2,F=21.2964+390.67050646*k-.0016528*T2;let C=(.1734-.000393*T)*Math.sin(M*r)+.0021*Math.sin(2*r*M)-.4068*Math.sin(Mp*r)+.0161*Math.sin(2*r*Mp)+.0104*Math.sin(2*r*F)-.0051*Math.sin(r*(M+Mp))-.0074*Math.sin(r*(M-Mp))+.0004*Math.sin(r*(2*F+M))-.0004*Math.sin(r*(2*F-M))-.0006*Math.sin(r*(2*F+Mp))+.001*Math.sin(r*(2*F-Mp))+.0005*Math.sin(r*(2*Mp+M));let dt=T<-11?.001+.000839*T+.0002261*T2:-.000278+.000265*T+.000262*T2;return J+C-dt}
 function sL(jd){let T=(jd-2451545)/36525,r=Math.PI/180,M=357.5291+35999.0503*T,L=(280.46645+36000.76983*T+(1.9146-.004817*T)*Math.sin(r*M)+.019993*Math.sin(2*r*M)+.00029*Math.sin(3*r*M))*r;L-=Math.PI*2*Math.floor(L/(Math.PI*2));return Math.floor(L/Math.PI*6)}
-function gLM11(y){let o=jdn(31,12,y)-2415021,k=Math.floor(o/29.530588853),n=nmJD(k);if(sL(n+.29)>=9)n=nmJD(k-1);return Math.floor(n+.5)}
-function gLMO(a){let k=Math.floor((a-2415021.076998695)/29.530588853+.5),l=0,i=1,cc=sL(nmJD(k+i)+.29);do{l=cc;i++;cc=sL(nmJD(k+i)+.29)}while(cc!==l&&i<14);return i-1}
-function s2l(d,m,y){let n=jdn(d,m,y),k=Math.floor((n-2415021.076998695)/29.530588853),s=Math.floor(nmJD(k)+.5);if(s>n)s=Math.floor(nmJD(k-1)+.5);let a=gLM11(y),b=a,ly;if(a>=s){ly=y;a=gLM11(y-1)}else{ly=y+1;b=gLM11(y+1)}let ld=n-s+1,df=Math.floor((s-a)/29),ll=0,lm=df+11;if(b-a>365){let lo=gLMO(a);if(df>=lo){lm=df+10;if(df===lo)ll=1}}if(lm>12)lm-=12;if(lm>=11&&df<4)ly-=1;return{day:ld,month:lm,year:ly}}
+function gLM11(y){let o=jdn(31,12,y)-2415021,k=Math.floor(o/29.530588853),n=nmJD(k);if(sL(n+7/24)>=9)n=nmJD(k-1);return Math.floor(n+.5)}
+function gLMO(a){let k=Math.floor((a-2415021.076998695)/29.530588853+.5),l=0,i=1,cc=sL(nmJD(k+i)+7/24);do{l=cc;i++;cc=sL(nmJD(k+i)+7/24)}while(cc!==l&&i<14);return i-1}
+function s2l(d,m,y){let n=jdn(d,m,y),k=Math.floor((n-2415021.076998695)/29.530588853),ms=Math.floor(nmJD(k)+.5);if(ms>n)ms=Math.floor(nmJD(k-1)+.5);
+  // Also check k+1: if next new moon is on or before n, use it
+  const ms2=Math.floor(nmJD(k+1)+.5);if(ms2<=n)ms=ms2;
+  let a=gLM11(y),b=a,ly;if(a>=ms){ly=y;a=gLM11(y-1)}else{ly=y+1;b=gLM11(y+1)}let ld=n-ms+1,df=Math.floor((ms-a)/29),ll=0,lm=df+11;if(b-a>365){let lo=gLMO(a);if(df>=lo){lm=df+10;if(df===lo)ll=1}}if(lm>12)lm-=12;if(lm>=11&&df<4)ly-=1;return{day:ld,month:lm,year:ly}}
 function hIdx(h){return h>=23||h<1?0:Math.floor((h-1)/2)+1}
 function mhCalc(u,l,t){const uu=((u-1)%8)+1,ll=((l-1)%8)+1,mv=((t-1)%6);const uK=MH_NUM[uu],lK=MH_NUM[ll];const lv=[...lK.split('').reverse().map(Number),...uK.split('').reverse().map(Number)];const moving=[mv];const lines=lv.map((v,i)=>({value:moving.includes(i)?(v===1?9:6):(v===1?7:8)}));return{chinh:lv2hex(lv),bien:lv2bien(lv,moving),queHo:lv2ho(lv),lines,lineValues:lv,moving}}
 function nowTS(){const d=new Date();return`${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')} ${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`}
@@ -396,14 +399,29 @@ export default function App(){
   </div></div>}
 
   // ======== LỊCH VIỆT — Calendar ========
+  // ======== LỊCH VIỆT — Calendar ========
+  const[showMonthPicker,setShowMonthPicker]=useState(false);
+
+  // Get quẻ chánh for giờ Tý of a given solar date
+  const dayQue=(d,m,y)=>{
+    const lu=s2l(d,m,y);
+    const chiY=((lu.year+8)%12)+1;
+    const upper=chiY+lu.month+lu.day;
+    const lower=upper+1; // Tý=1
+    const uNum=upper%8===0?8:upper%8;
+    const lNum=lower%8===0?8:lower%8;
+    const uKey=MH_NUM[uNum],lKey=MH_NUM[lNum];
+    const lv=[...lKey.split('').reverse().map(Number),...uKey.split('').reverse().map(Number)];
+    return lv2hex(lv);
+  };
+
   if(view==='lichviet'){
     const daysInMonth=new Date(calYear,calMonth,0).getDate();
-    const firstDow=new Date(calYear,calMonth-1,1).getDay(); // 0=Sun
+    const firstDow=new Date(calYear,calMonth-1,1).getDay();
     const today=new Date();const isToday=(d)=>d===today.getDate()&&calMonth===today.getMonth()+1&&calYear===today.getFullYear();
     const prevM=()=>{if(calMonth===1){setCalMonth(12);setCalYear(calYear-1)}else setCalMonth(calMonth-1)};
     const nextM=()=>{if(calMonth===12){setCalMonth(1);setCalYear(calYear+1)}else setCalMonth(calMonth+1)};
     const dowLabels=['CN','T2','T3','T4','T5','T6','T7'];
-    // Build calendar grid
     const cells=[];
     for(let i=0;i<firstDow;i++)cells.push(null);
     for(let d=1;d<=daysInMonth;d++)cells.push(d);
@@ -415,19 +433,19 @@ export default function App(){
         <div style={{width:60}}/>
       </div>
 
-      {/* Month nav */}
+      {/* Month nav — tap center to pick */}
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16,padding:'0 8px'}}>
-        <button onClick={prevM} style={{width:36,height:36,borderRadius:10,border:`1px solid ${T.border}`,background:T.card,fontSize:16,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}>‹</button>
-        <div style={{textAlign:'center'}}>
+        <button onClick={prevM} style={{width:36,height:36,borderRadius:10,border:`1px solid ${T.border}`,background:T.card,fontSize:18,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}>‹</button>
+        <button onClick={()=>setShowMonthPicker(true)} style={{background:'none',border:'none',textAlign:'center',cursor:'pointer',padding:'4px 12px'}}>
           <div style={{fontSize:18,fontWeight:700,color:T.fg}}>Tháng {calMonth}</div>
-          <div style={{fontSize:12,color:T.muted}}>{calYear}</div>
-        </div>
-        <button onClick={nextM} style={{width:36,height:36,borderRadius:10,border:`1px solid ${T.border}`,background:T.card,fontSize:16,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}>›</button>
+          <div style={{fontSize:12,color:T.accent,textDecoration:'underline'}}>{calYear} ▾</div>
+        </button>
+        <button onClick={nextM} style={{width:36,height:36,borderRadius:10,border:`1px solid ${T.border}`,background:T.card,fontSize:18,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}>›</button>
       </div>
 
       {/* Day of week headers */}
       <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:2,marginBottom:4}}>
-        {dowLabels.map(d=><div key={d} style={{textAlign:'center',fontSize:11,fontWeight:600,color:d==='CN'?T.red:T.muted,padding:'4px 0'}}>{d}</div>)}
+        {dowLabels.map((d,i)=><div key={d} style={{textAlign:'center',fontSize:11,fontWeight:600,color:i===0?T.red:i===6?'#1565c0':T.muted,padding:'4px 0'}}>{d}</div>)}
       </div>
 
       {/* Calendar grid */}
@@ -435,22 +453,51 @@ export default function App(){
         {cells.map((d,i)=>{
           if(!d)return<div key={i}/>;
           const lu=s2l(d,calMonth,calYear);
-          const luDay=lu.day===1?`${lu.month}/${lu.day}`:lu.day;
-          const isNew=lu.day===1;
           const dow=new Date(calYear,calMonth-1,d).getDay();
+          const isNew=lu.day===1;
+          const isFull=lu.day===15;
+          const dq=dayQue(d,calMonth,calYear);
+          const luColor=(isNew||isFull)?T.red:T.muted;
+          const luText=isNew?`${lu.month}ÂL`:lu.day;
           return<button key={i} onClick={()=>{setCalDay(d);setView('lichday')}}
-            style={{padding:'6px 2px',background:isToday(d)?T.accentBg:T.card,border:isToday(d)?`2px solid ${T.accent}`:`1px solid ${T.border}`,borderRadius:10,textAlign:'center',cursor:'pointer',minHeight:52}}>
-            <div style={{fontSize:14,fontWeight:isToday(d)?700:500,color:dow===0?T.red:T.fg}}>{d}</div>
-            <div style={{fontSize:10,color:isNew?T.accent:T.muted,fontWeight:isNew?700:400}}>{isNew?`${lu.month}ÂL`:lu.day}</div>
+            style={{padding:'4px 1px',background:isToday(d)?T.accentBg:T.card,border:isToday(d)?`2px solid ${T.accent}`:`1px solid ${T.border}`,borderRadius:8,textAlign:'center',cursor:'pointer',minHeight:62}}>
+            <div style={{fontSize:14,fontWeight:isToday(d)?700:500,color:dow===0?T.red:dow===6?'#1565c0':T.fg}}>{d}</div>
+            <div style={{fontSize:9,color:luColor,fontWeight:(isNew||isFull)?700:400}}>{luText}</div>
+            {dq&&<div style={{fontSize:8,color:T.accent,marginTop:1,lineHeight:1}}>{calQ(dq)}</div>}
           </button>
         })}
       </div>
 
       {/* Legend */}
-      <div style={{display:'flex',gap:16,justifyContent:'center',marginTop:12,fontSize:11,color:T.muted}}>
-        <span>Số lớn: Dương lịch</span>
-        <span>Số nhỏ: Âm lịch</span>
+      <div style={{display:'flex',gap:12,justifyContent:'center',flexWrap:'wrap',marginTop:12,fontSize:10,color:T.muted}}>
+        <span>DL lớn • ÂL nhỏ • <span style={{color:T.accent}}>Quẻ giờ Tý</span></span>
+        <span><span style={{color:T.red}}>■</span> CN/mùng 1,15</span>
+        <span><span style={{color:'#1565c0'}}>■</span> Thứ 7</span>
       </div>
+
+      {/* Month/Year Picker */}
+      {showMonthPicker&&<div onClick={()=>setShowMonthPicker(false)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,.5)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:200,padding:16}}>
+        <div onClick={e=>e.stopPropagation()} style={{background:dark?'#1c1c20':'#fff',borderRadius:16,padding:20,maxWidth:340,width:'100%'}}>
+          <div style={{textAlign:'center',marginBottom:16,fontWeight:700,color:T.fg,fontSize:16}}>Chọn tháng & năm</div>
+          {/* Year selector */}
+          <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:12,marginBottom:16}}>
+            <button onClick={()=>setCalYear(calYear-1)} style={{width:32,height:32,borderRadius:8,border:`1px solid ${T.border}`,background:T.card,fontSize:16,cursor:'pointer'}}>‹</button>
+            <span style={{fontSize:20,fontWeight:700,color:T.fg,minWidth:60,textAlign:'center'}}>{calYear}</span>
+            <button onClick={()=>setCalYear(calYear+1)} style={{width:32,height:32,borderRadius:8,border:`1px solid ${T.border}`,background:T.card,fontSize:16,cursor:'pointer'}}>›</button>
+          </div>
+          {/* Month grid */}
+          <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:6}}>
+            {Array.from({length:12},(_,i)=>i+1).map(m=>(
+              <button key={m} onClick={()=>{setCalMonth(m);setShowMonthPicker(false)}}
+                style={{padding:'10px 0',borderRadius:8,border:m===calMonth?`2px solid ${T.accent}`:`1px solid ${T.border}`,background:m===calMonth?T.accentBg:T.card,color:m===calMonth?T.accent:T.fg,fontWeight:m===calMonth?700:400,fontSize:14,cursor:'pointer'}}>
+                T{m}
+              </button>
+            ))}
+          </div>
+          <button onClick={()=>{const d=new Date();setCalYear(d.getFullYear());setCalMonth(d.getMonth()+1);setShowMonthPicker(false)}}
+            style={{width:'100%',marginTop:12,padding:10,background:T.accent,color:'#fff',border:'none',borderRadius:8,fontWeight:600,cursor:'pointer'}}>Hôm nay</button>
+        </div>
+      </div>}
     </div></div>;
   }
 

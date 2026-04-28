@@ -49,7 +49,7 @@ export const HEXAGRAMS = [
   [35,'Hỏa Địa Tấn','晉','101','000','Tiến lên, thăng tiến, phát triển'],
   [36,'Địa Hỏa Minh Di','明夷','000','101','Ánh sáng bị thương, ẩn mình, thời kỳ tối'],
   [37,'Phong Hỏa Gia Nhân','家人','110','101','Gia đình, nội trợ, quản lý gia đạo'],
-  [38,'Hỏa Trạch Khuê','睽','101','011','Đối lập, mâu thuẫn, bất hòa'],
+  [38,'Hỏa Trạch Khuể','睽','101','011','Đối lập, mâu thuẫn, bất hòa'],
   [39,'Thủy Sơn Kiển','蹇','010','100','Khó đi, trở ngại, chân bước khó'],
   [40,'Lôi Thủy Giải','解','001','010','Giải thoát, tháo gỡ, giải quyết'],
   [41,'Sơn Trạch Tổn','損','100','011','Giảm bớt, hy sinh, thiệt thòi để được'],
