@@ -1,11 +1,13 @@
 * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-body { 
+html, body { 
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
   font-family: 'DM Sans', system-ui, sans-serif;
-  overscroll-behavior: none; 
-  -webkit-overflow-scrolling: touch; 
-  overflow-x: hidden;
+  overscroll-behavior: none;
 }
-#root { min-height: 100dvh; }
+#root { height: 100%; overflow: hidden; }
 button { 
   font-family: inherit; 
   transition: transform .15s ease, opacity .15s ease;

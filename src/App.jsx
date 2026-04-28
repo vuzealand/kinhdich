@@ -217,7 +217,8 @@ export default function App(){
     shadow:dark?'none':'0 2px 12px rgba(0,0,0,.05)',
   };
 
-  const wrap={background:T.bg,color:T.fg,minHeight:'100dvh',transform:`translateX(${swipeX}px)`,transition:swipeX===0?'transform .2s ease-out':'none'};
+  const wrap={background:T.bg,color:T.fg,height:'100%',overflow:'hidden',transform:`translateX(${swipeX}px)`,transition:swipeX===0?'transform .2s ease-out':'none'};
+  const wrapScroll={...wrap,overflow:'auto',WebkitOverflowScrolling:'touch'};
 
   // ======== CAST ========
   const addHist=(r)=>{setHistory(prev=>{const u=[r,...prev].slice(0,50);localStorage.setItem('kd_history',JSON.stringify(u));return u})};
@@ -285,7 +286,7 @@ export default function App(){
       ['thoi','Thời',T.red],['khac','Khắc',T.amber],['giay','Giây',T.teal],
       ['ngaunhien','Ngẫu Nhiên',T.green],['nhap','Nhập Quẻ',T.purple],['dacbiet','Đặc Biệt',T.blue],
     ];
-    return<div style={{...wrap,height:"100dvh",overflow:"hidden"}} onTouchStart={onTS} onTouchMove={onTM} onTouchEnd={onTE}><div style={{maxWidth:480,margin:'0 auto',padding:'24px 20px'}}>
+    return<div style={wrap} onTouchStart={onTS} onTouchMove={onTM} onTouchEnd={onTE}><div style={{maxWidth:480,margin:'0 auto',padding:'24px 20px'}}>
       {/* Header */}
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:32}}>
         <div/><div style={{textAlign:'center'}}><div style={{fontSize:24,fontWeight:700,color:T.fg,fontFamily:"'Cormorant Garamond',Georgia,serif",letterSpacing:3}}>KINH DỊCH</div><div style={{fontSize:11,color:T.muted,marginTop:2,letterSpacing:1}}>Gieo Quẻ & Luận Giải</div></div>
@@ -319,7 +320,7 @@ export default function App(){
   }
 
   // ======== QUESTION ========
-  if(view==='question'){const r=qResult;return<div style={wrap} onTouchStart={onTS} onTouchMove={onTM} onTouchEnd={onTE}><div style={{maxWidth:480,margin:'0 auto',padding:'16px 20px'}}>
+  if(view==='question'){const r=qResult;return<div style={wrapScroll} onTouchStart={onTS} onTouchMove={onTM} onTouchEnd={onTE}><div style={{maxWidth:480,margin:'0 auto',padding:'16px 20px'}}>
     <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
       <button onClick={goHome} style={{background:'none',border:'none',color:T.accent,fontSize:13,fontWeight:600,display:'flex',alignItems:'center',gap:4}}><Icon d={ICONS.back} size={16} color={T.accent}/> Quay lại</button>
       <span style={{fontWeight:700,color:T.accent,fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:18}}>Gieo Quẻ</span>
@@ -355,7 +356,7 @@ export default function App(){
     </div>{Sett()}{Pop()}</div>}
 
   // ======== ĐẶC BIỆT ========
-  if(view==='dacbiet'){const r=dacBietResult;return<div style={{...wrap,height:"100dvh",overflow:"hidden"}} onTouchStart={onTS} onTouchMove={onTM} onTouchEnd={onTE}><div style={{maxWidth:480,margin:'0 auto',padding:'20px'}}>
+  if(view==='dacbiet'){const r=dacBietResult;return<div style={wrap} onTouchStart={onTS} onTouchMove={onTM} onTouchEnd={onTE}><div style={{maxWidth:480,margin:'0 auto',padding:'20px'}}>
     <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:24}}><button onClick={goHome} style={{background:'none',border:'none',color:T.accent,fontSize:13,fontWeight:600,display:'flex',alignItems:'center',gap:4}}><Icon d={ICONS.back} size={16} color={T.accent}/> Quay lại</button><span style={{fontWeight:700,color:T.blue,fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:18}}>Đặc Biệt</span><div style={{width:40}}/></div>
     <p style={{fontSize:13,color:T.muted,textAlign:'center',marginBottom:16}}>Nhập dãy số ngẫu nhiên</p>
     <input type="text" inputMode="numeric" value={specialNum} onChange={e=>setSpecialNum(e.target.value)} placeholder="12345" style={{width:'100%',padding:18,border:`2px solid ${T.blue}40`,borderRadius:14,fontSize:26,textAlign:'center',background:T.card,color:T.fg,boxSizing:'border-box',marginBottom:14,fontFamily:"'Cormorant Garamond',Georgia,serif",fontWeight:600}}/>
@@ -368,7 +369,7 @@ export default function App(){
   </div>{Pop()}</div>}
 
   // ======== NHẬP QUẺ ========
-  if(view==='nhap'){return<div style={{...wrap,height:"100dvh",overflow:"hidden"}} onTouchStart={onTS} onTouchMove={onTM} onTouchEnd={onTE}><div style={{maxWidth:480,margin:'0 auto',padding:'16px 20px'}}>
+  if(view==='nhap'){return<div style={wrap} onTouchStart={onTS} onTouchMove={onTM} onTouchEnd={onTE}><div style={{maxWidth:480,margin:'0 auto',padding:'16px 20px'}}>
     <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}><button onClick={()=>{goHome();setManualMoving([])}} style={{background:'none',border:'none',color:T.accent,fontSize:13,fontWeight:600,display:'flex',alignItems:'center',gap:4}}><Icon d={ICONS.back} size={16} color={T.accent}/> Quay lại</button><span style={{fontWeight:700,color:T.purple,fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:18}}>Nhập Quẻ</span><div style={{width:40}}/></div>
     <div style={{display:'flex',gap:10,marginBottom:14}}>{[['Thượng Quái',manualUpper,setManualUpper],['Hạ Quái',manualLower,setManualLower]].map(([label,val,fn])=><div key={label} style={{flex:1}}><div style={{fontSize:11,marginBottom:6,color:T.muted,textAlign:'center',fontWeight:600}}>{label}</div>{Object.entries(TRIGRAMS).map(([k,t])=><button key={k} onClick={()=>fn(k)} style={{width:'100%',padding:7,marginBottom:3,background:val===k?T.purple:T.card,color:val===k?'#fff':T.fg,border:'none',borderRadius:8,fontSize:12,fontWeight:val===k?600:400,boxShadow:val===k?'none':T.shadow}}>{t.symbol} {t.name}</button>)}</div>)}</div>
     <div style={{marginBottom:18}}><div style={{fontSize:11,marginBottom:6,color:T.muted,textAlign:'center',fontWeight:600}}>Hào Động</div><div style={{display:'flex',gap:4,justifyContent:'center'}}>{LINE_NAMES.map((n,i)=><button key={i} onClick={()=>setManualMoving(p=>p.includes(i)?p.filter(x=>x!==i):[...p,i])} style={{padding:'8px 12px',background:manualMoving.includes(i)?T.red:T.card,color:manualMoving.includes(i)?'#fff':T.fg,border:'none',borderRadius:8,fontSize:12,fontWeight:600,boxShadow:manualMoving.includes(i)?'none':T.shadow}}>{n}</button>)}</div></div>
@@ -376,7 +377,7 @@ export default function App(){
   </div></div>}
 
   // ======== RESULT + AI ========
-  if(view==='result'&&result?.chinh){const done=!luanLoading&&(luanResult||chatHistory.length>0);return<div style={wrap} onTouchStart={onTS} onTouchMove={onTM} onTouchEnd={onTE}><div style={{maxWidth:600,margin:'0 auto',padding:'16px 20px'}}>
+  if(view==='result'&&result?.chinh){const done=!luanLoading&&(luanResult||chatHistory.length>0);return<div style={wrapScroll} onTouchStart={onTS} onTouchMove={onTM} onTouchEnd={onTE}><div style={{maxWidth:600,margin:'0 auto',padding:'16px 20px'}}>
     <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
       <button onClick={goHome} style={{background:'none',border:'none',color:T.accent,fontSize:13,fontWeight:600,display:'flex',alignItems:'center',gap:4}}><Icon d={ICONS.back} size={16} color={T.accent}/> Quay lại</button>
       <span style={{fontSize:12,color:T.muted}}>{result.method} · {result.ts}</span>
@@ -423,7 +424,7 @@ export default function App(){
     const dowLabels=['CN','T2','T3','T4','T5','T6','T7'];
     const cells=[];for(let i=0;i<firstDow;i++)cells.push(null);for(let d=1;d<=daysInMonth;d++)cells.push(d);
 
-    return<div style={{...wrap,height:'100dvh',overflow:'hidden',display:'flex',flexDirection:'column'}} onTouchStart={onTS} onTouchMove={onTM} onTouchEnd={onTE}><div style={{maxWidth:480,margin:'0 auto',padding:'12px 16px',flex:1,display:'flex',flexDirection:'column'}}>
+    return<div style={wrap} onTouchStart={onTS} onTouchMove={onTM} onTouchEnd={onTE}><div style={{maxWidth:480,margin:'0 auto',padding:'16px 20px'}}>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
         <button onClick={goHome} style={{background:'none',border:'none',color:T.accent,fontSize:13,fontWeight:600}}>← Quay lại</button>
         <span style={{fontWeight:700,color:T.fg,fontSize:16}}>Lịch Việt</span>
@@ -496,7 +497,7 @@ export default function App(){
       return{chinh:lv2hex(lv),bien:lv2bien(lv,moving),queHo:lv2ho(lv),lines,lineValues:lv,moving};
     });
 
-    return<div style={{...wrap,height:'100dvh',overflow:'hidden',display:'flex',flexDirection:'column'}} onTouchStart={onTS} onTouchMove={onTM} onTouchEnd={onTE}><div style={{maxWidth:480,margin:'0 auto',padding:'10px 12px',flex:1,display:'flex',flexDirection:'column'}}>
+    return<div style={wrapScroll} onTouchStart={onTS} onTouchMove={onTM} onTouchEnd={onTE}><div style={{maxWidth:480,margin:'0 auto',padding:'12px 16px'}}>
       {/* Header */}
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
         <button onClick={()=>setView('lichviet')} style={{background:'none',border:'none',color:T.accent,fontSize:13,fontWeight:600}}>← Lịch</button>
@@ -515,14 +516,14 @@ export default function App(){
         <div style={{fontSize:10,fontWeight:600,color:T.muted,textAlign:'center'}}>Biến</div>
       </div>
 
-      {/* 12 hours — equal rows filling remaining space */}
-      <div style={{flex:1,display:'flex',flexDirection:'column',gap:1}}>
+      {/* 12 hours */}
+      <div>
         {hourQues.map((q,hi)=>{
           if(!q.chinh)return null;
           return<button key={hi} onClick={()=>setPopup(q.chinh)}
-            style={{flex:1,display:'grid',gridTemplateColumns:'54px 1fr 1fr 1fr',gap:2,alignItems:'center',background:T.card,border:`1px solid ${T.border}`,borderRadius:6,textAlign:'center',padding:'0 4px',minHeight:0}}>
+            style={{width:'100%',display:'grid',gridTemplateColumns:'54px 1fr 1fr 1fr',gap:2,alignItems:'center',background:T.card,border:`1px solid ${T.border}`,borderRadius:6,textAlign:'center',padding:'8px 4px',marginBottom:2}}>
             <div>
-              <div style={{fontSize:12,fontWeight:700,color:T.accent}}>{CHI_NAMES[hi]}</div>
+              <div style={{fontSize:13,fontWeight:700,color:T.accent}}>{CHI_NAMES[hi]}</div>
               <div style={{fontSize:11,color:T.fg}}>{CHI_HOURS[hi]}h</div>
             </div>
             <div style={{fontSize:13,fontWeight:600,color:T.fg}}>{calQ(q.chinh)}</div>
