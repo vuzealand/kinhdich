@@ -186,7 +186,8 @@ export default function App(){
   // Calendar
   const[calYear,setCalYear]=useState(()=>new Date().getFullYear());
   const[calMonth,setCalMonth]=useState(()=>new Date().getMonth()+1);
-  const[calDay,setCalDay]=useState(null); // selected day for 12-hour view
+  const[calDay,setCalDay]=useState(null);
+  const[showMonthPicker,setShowMonthPicker]=useState(false); // selected day for 12-hour view
 
   const toggleDark=()=>{const n=!dark;setDark(n);localStorage.setItem('kd_dark',n?'1':'0')};
   const goHome=()=>{setView('home');setResult(null);setLuanResult('');setChatHistory([]);setDacBietResult(null)};
@@ -399,8 +400,6 @@ export default function App(){
   </div></div>}
 
   // ======== LỊCH VIỆT — Calendar ========
-  // ======== LỊCH VIỆT — Calendar ========
-  const[showMonthPicker,setShowMonthPicker]=useState(false);
 
   // Get quẻ chánh for giờ Tý of a given solar date
   const dayQue=(d,m,y)=>{
