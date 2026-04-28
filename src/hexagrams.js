@@ -19,7 +19,7 @@ export const HEXAGRAMS = [
   [5,'Thủy Thiên Nhu','需','010','111','Chờ đợi, nuôi dưỡng, thời cơ chưa đến'],
   [6,'Thiên Thủy Tụng','訟','111','010','Tranh chấp, kiện tụng, cần hòa giải'],
   [7,'Địa Thủy Sư','師','000','010','Quân đội, lãnh đạo, kỷ luật'],
-  [8,'Thủy Địa Tỉ','比','010','000','Thân cận, liên kết, hợp tác'],
+  [8,'Thủy Địa Tỷ','比','010','000','Thân cận, liên kết, hợp tác'],
   [9,'Phong Thiên Tiểu Súc','小畜','110','111','Tích trữ nhỏ, nuôi dưỡng, chờ thời'],
   [10,'Thiên Trạch Lý','履','111','011','Đi cẩn thận, lễ nghi, hành xử đúng'],
   [11,'Địa Thiên Thái','泰','000','111','Thông suốt, hanh thông, thái bình'],
