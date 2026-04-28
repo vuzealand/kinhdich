@@ -25,6 +25,8 @@ function hIdx(h){return h>=23||h<1?0:Math.floor((h-1)/2)+1}
 function mhCalc(u,l,t){const uu=((u-1)%8)+1,ll=((l-1)%8)+1,mv=((t-1)%6);const uK=MH_NUM[uu],lK=MH_NUM[ll];const lv=[...lK.split('').reverse().map(Number),...uK.split('').reverse().map(Number)];const moving=[mv];const lines=lv.map((v,i)=>({value:moving.includes(i)?(v===1?9:6):(v===1?7:8)}));return{chinh:lv2hex(lv),bien:lv2bien(lv,moving),queHo:lv2ho(lv),lines,lineValues:lv,moving}}
 function nowTS(){const d=new Date();return`${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')} ${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`}
 function shortQ(hex){if(!hex)return'';const p=hex[1].split(' ');return p.length>2?p.slice(2).join(' '):hex[1]}
+// Calendar short name: strip "Thuần " prefix
+function calQ(hex){if(!hex)return'';const n=shortQ(hex);return n.replace('Thuần ','')}
 
 // SVG Icons (utility)
 const Icon=({d,size=20,color='currentColor'})=><svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d={d}/></svg>;
@@ -455,11 +457,25 @@ export default function App(){
   // ======== LỊCH VIỆT — Day Detail: 12 quẻ theo giờ ========
   if(view==='lichday'&&calDay){
     const lu=s2l(calDay,calMonth,calYear);
-    const upperBase=lu.year+lu.month+lu.day;
+    // Mai Hoa chuẩn: năm = Chi ÂL (Tý=1...Hợi=12), tháng = tháng ÂL, ngày = ngày ÂL
+    const chiYear=((lu.year+8)%12)+1; // 1-indexed: Tý=1...Hợi=12
+    const sumUpper=chiYear+lu.month+lu.day;
     // Generate 12 quẻ for 12 giờ
     const hourQues=CHI_NAMES.map((_,hi)=>{
-      const lower=upperBase+(hi+1);
-      return mhCalc(upperBase,lower,lower);
+      const hourChi=hi+1; // Tý=1...Hợi=12
+      const sumLower=sumUpper+hourChi;
+      // Thượng quái
+      const uRem=sumUpper%8;const uNum=uRem===0?8:uRem;
+      // Hạ quái  
+      const lRem=sumLower%8;const lNum=lRem===0?8:lRem;
+      // Hào động
+      const hRem=sumLower%6;const haoIdx=hRem===0?5:(hRem-1); // 0-indexed: 0=hào1...5=hào6
+      // Build lineValues bottom-to-top
+      const uKey=MH_NUM[uNum],lKey=MH_NUM[lNum];
+      const lv=[...lKey.split('').reverse().map(Number),...uKey.split('').reverse().map(Number)];
+      const moving=[haoIdx];
+      const lines=lv.map((v,i)=>({value:moving.includes(i)?(v===1?9:6):(v===1?7:8)}));
+      return{chinh:lv2hex(lv),bien:lv2bien(lv,moving),queHo:lv2ho(lv),lines,lineValues:lv,moving};
     });
 
     return<div style={wrap} onTouchStart={onTS} onTouchMove={onTM} onTouchEnd={onTE}><div style={{maxWidth:480,margin:'0 auto',padding:'16px 20px'}}>
@@ -472,22 +488,31 @@ export default function App(){
         <div style={{width:50}}/>
       </div>
 
-      <div style={{fontSize:13,color:T.muted,textAlign:'center',marginBottom:16}}>12 quẻ theo giờ</div>
+      <div style={{fontSize:13,color:T.muted,textAlign:'center',marginBottom:8}}>12 quẻ theo giờ (Mai Hoa Dịch Số)</div>
+
+      {/* Column headers */}
+      <div style={{display:'flex',alignItems:'center',padding:'6px 16px',marginBottom:4}}>
+        <div style={{minWidth:48}}/>
+        <div style={{flex:1,display:'flex',justifyContent:'space-around',paddingLeft:8}}>
+          <div style={{textAlign:'center',minWidth:60,fontSize:11,fontWeight:600,color:T.accent}}>Chánh</div>
+          <div style={{textAlign:'center',minWidth:60,fontSize:11,fontWeight:600,color:T.muted}}>Hộ</div>
+          <div style={{textAlign:'center',minWidth:60,fontSize:11,fontWeight:600,color:T.muted}}>Biến</div>
+        </div>
+      </div>
 
       {hourQues.map((q,hi)=>{
         if(!q.chinh)return null;
         return<button key={hi} onClick={()=>setPopup(q.chinh)}
-          style={{width:'100%',display:'flex',alignItems:'center',gap:12,padding:'12px 16px',marginBottom:6,background:T.card,border:`1px solid ${T.border}`,borderRadius:12,textAlign:'left',boxShadow:T.shadow}}>
-          <div style={{minWidth:52,textAlign:'center'}}>
-            <div style={{fontSize:14,fontWeight:700,color:T.accent}}>{CHI_NAMES[hi]}</div>
-            <div style={{fontSize:10,color:T.muted}}>{CHI_HOURS[hi]}h</div>
+          style={{width:'100%',display:'flex',alignItems:'center',padding:'12px 16px',marginBottom:6,background:T.card,border:`1px solid ${T.border}`,borderRadius:12,textAlign:'left',boxShadow:T.shadow}}>
+          <div style={{minWidth:48,textAlign:'center'}}>
+            <div style={{fontSize:13,fontWeight:700,color:T.accent}}>Giờ {CHI_NAMES[hi]}</div>
+            <div style={{fontSize:10,color:T.muted}}>({CHI_HOURS[hi]}h)</div>
           </div>
-          <div style={{width:1,height:32,background:T.border}}/>
-          <div style={{flex:1}}>
-            <div style={{fontSize:14,fontWeight:600,color:T.fg}}>{shortQ(q.chinh)}</div>
-            <div style={{fontSize:11,color:T.muted}}>{q.chinh[1]}{q.bien?' → '+shortQ(q.bien):''}</div>
+          <div style={{flex:1,display:'flex',justifyContent:'space-around',paddingLeft:8}}>
+            <div style={{textAlign:'center',minWidth:60}}><div style={{fontSize:13,fontWeight:600,color:T.fg}}>{calQ(q.chinh)}</div></div>
+            {q.queHo&&<div style={{textAlign:'center',minWidth:60}}><div style={{fontSize:13,color:T.muted}}>{calQ(q.queHo)}</div></div>}
+            {q.bien&&<div style={{textAlign:'center',minWidth:60}}><div style={{fontSize:13,color:T.muted}}>{calQ(q.bien)}</div></div>}
           </div>
-          <RHex lv={q.lineValues} w={32}/>
         </button>
       })}
     </div>{Pop()}</div>;
