@@ -211,7 +211,7 @@ export default function App(){
     bg:dark?'#111113':'#faf9f6', fg:dark?'#d4d0c8':'#1a1a1f', card:dark?'#1c1c22':'#ffffff',
     muted:dark?'#6b6860':'#9a958c', border:dark?'#2a2a30':'#e8e4dd',
     accent:dark?'#c8a45c':'#8b7346', accentSoft:dark?'#2a2218':'#f5efe4',
-    red:dark?'#c06060':'#a04040', green:dark?'#6a9c79':'#4a7c59',
+    red:dark?'#c06060':'#a04040', calRed:dark?'#ef5350':'#e53935', green:dark?'#6a9c79':'#4a7c59',
     blue:dark?'#6a8baa':'#4a6b8a', purple:dark?'#8b7baa':'#6b5b8a',
     amber:dark?'#c8a45c':'#8b7346', teal:dark?'#6a9a9a':'#4a7a7a',
     shadow:dark?'none':'0 2px 12px rgba(0,0,0,.05)',
@@ -229,7 +229,58 @@ export default function App(){
   const castNhap=()=>{const lo=manualLower.split('').reverse().map(Number),up=manualUpper.split('').reverse().map(Number);const lv=[...lo,...up];const moving=[...manualMoving];const lines=lv.map((v,i)=>({value:moving.includes(i)?(v===1?9:6):(v===1?7:8)}));const r=buildR({chinh:lv2hex(lv),bien:moving.length>0?lv2bien(lv,moving):null,queHo:lv2ho(lv),lines,lineValues:lv,moving},'Nhập Quẻ');setResult(r);addHist(r);setLuanResult('');setChatHistory([]);setPhamVi('');setView('result')};
   const castQuestion=()=>{setSpinning(true);setTimeout(()=>{const now=new Date(),lu=s2l(now.getDate(),now.getMonth()+1,now.getFullYear()),hi=hIdx(now.getHours())+1;const sec=now.getSeconds()+1,ms=now.getMilliseconds()+1;const us=lu.year+lu.month+lu.day+hi,ls=us+sec;const r=buildR(mhCalc(us,ls,ls+ms),'Gieo Quẻ',qText,qName);setQResult(r);addHist(r);setSpinning(false)},1400)};
   const saveQ=()=>{if(!qResult)return;setSaved(prev=>{const u=[{...qResult,savedAt:new Date().toLocaleString('vi-VN')},...prev];localStorage.setItem('kd_saved',JSON.stringify(u));return u});alert('✓ Đã lưu')};
-  const shareResult=(r)=>{if(!r?.chinh)return;const uTr=TRIGRAMS[r.chinh[3]],lTr=TRIGRAMS[r.chinh[4]];const mv0=r.moving?.[0];const isUp=mv0>=3;const the=isUp?lTr:uTr,dung=isUp?uTr:lTr;let text=`☯ KINH DỊCH\n`;if(r.name)text+=`${r.name}\n`;if(r.question)text+=`${r.question}\n`;text+=`${r.method} • ${r.ts}\n\n▸ Chánh: ${r.chinh[1]}\n`;if(r.queHo)text+=`▸ Hộ: ${r.queHo[1]}\n`;if(r.bien)text+=`▸ Biến: ${r.bien[1]}\n`;if(r.moving?.length)text+=`\nThể: ${the.name} (${the.element}) — Dụng: ${dung.name} (${dung.element})\n`;if(navigator.share)navigator.share({title:'Kinh Dịch',text}).catch(()=>{});else navigator.clipboard.writeText(text).then(()=>alert('✓ Đã copy')).catch(()=>{})};
+  const shareResult=async(r)=>{if(!r?.chinh)return;
+    const uTr=TRIGRAMS[r.chinh[3]],lTr=TRIGRAMS[r.chinh[4]];
+    const mv0=r.moving?.[0];const isUp=mv0>=3;
+    const the=isUp?lTr:uTr,dung=isUp?uTr:lTr;
+    // Draw on canvas
+    const cv=document.createElement('canvas');cv.width=600;cv.height=480;
+    const ctx=cv.getContext('2d');
+    ctx.fillStyle='#faf9f6';ctx.fillRect(0,0,600,480);
+    ctx.fillStyle='#8b7346';ctx.font='bold 22px serif';ctx.textAlign='center';
+    ctx.fillText('☯ KINH DỊCH',300,36);
+    ctx.fillStyle='#333';ctx.font='14px sans-serif';
+    if(r.name)ctx.fillText(r.name,300,60);
+    if(r.question)ctx.fillText(r.question,300,80);
+    ctx.fillStyle='#888';ctx.font='12px sans-serif';
+    ctx.fillText(r.method+' • '+r.ts,300,100);
+    // Draw 3 hexagrams
+    const drawHex=(lv,x,y,label)=>{
+      ctx.fillStyle='#8b7346';ctx.font='bold 11px sans-serif';ctx.fillText(label,x,y-55);
+      for(let i=5;i>=0;i--){
+        const ly=y-i*14;ctx.fillStyle='#1a1a1f';
+        if(lv[5-i]===1){ctx.fillRect(x-25,ly,50,7)}
+        else{ctx.fillRect(x-25,ly,22,7);ctx.fillRect(x+3,ly,22,7)}
+      }
+    };
+    const lv=r.lineValues;
+    drawHex(lv,150,190,'CHÁNH');
+    if(r.queHo)drawHex(hoLv(lv),300,190,'HỘ');
+    if(r.bien)drawHex(bienLv(lv,r.moving),450,190,'BIẾN');
+    // Names
+    ctx.fillStyle='#8b7346';ctx.font='bold 16px serif';
+    ctx.fillText(shortQ(r.chinh),150,260);
+    if(r.queHo)ctx.fillText(shortQ(r.queHo),300,260);
+    if(r.bien)ctx.fillText(shortQ(r.bien),450,260);
+    // Thể Dụng
+    ctx.fillStyle='#333';ctx.font='13px sans-serif';
+    if(r.moving?.length){ctx.fillText('Thể: '+the.name+' ('+the.element+')  —  Dụng: '+dung.name+' ('+dung.element+')',300,300)}
+    // Watermark
+    ctx.fillStyle='#ccc';ctx.font='11px sans-serif';ctx.fillText('kinhdich-ten.vercel.app',300,460);
+    // Share
+    try{
+      const blob=await new Promise(res=>cv.toBlob(res,'image/png'));
+      const file=new File([blob],'kinhdich.png',{type:'image/png'});
+      if(navigator.share&&navigator.canShare?.({files:[file]})){
+        await navigator.share({files:[file],title:'Kinh Dịch'});
+      }else{
+        const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='kinhdich.png';a.click();URL.revokeObjectURL(url);
+      }
+    }catch{
+      let text=`☯ KINH DỊCH\n`;if(r.name)text+=r.name+'\n';if(r.question)text+=r.question+'\n';text+=r.method+' • '+r.ts+'\n\n▸ Chánh: '+r.chinh[1]+'\n';if(r.queHo)text+='▸ Hộ: '+r.queHo[1]+'\n';if(r.bien)text+='▸ Biến: '+r.bien[1]+'\n';
+      navigator.clipboard?.writeText(text).then(()=>alert('✓ Đã copy text'));
+    }
+  };
 
   // AI
   const buildPrompt=()=>{if(!result?.chinh)return'';const ch=result.chinh,uTr=TRIGRAMS[ch[3]],lTr=TRIGRAMS[ch[4]];let p=`# Gieo Quẻ Kinh Dịch\n`;if(result.question)p+=`**Câu hỏi:** ${result.question}\n`;if(result.name)p+=`**Sự việc:** ${result.name}\n`;if(phamVi)p+=`**Phạm vi:** ${phamVi}\n`;p+=`**${result.method}** • ${result.ts}`;if(result.lunar)p+=` • ÂL ${result.lunar.day}/${result.lunar.month}/${result.lunar.year}`;p+=`\n\n## Quẻ Chánh: ${ch[1]}\n- Thượng: ${uTr.name} (${uTr.nature}, ${uTr.element})\n- Hạ: ${lTr.name} (${lTr.nature}, ${lTr.element})\n`;if(result.moving?.length>0){const mv0=result.moving[0],isUp=mv0>=3;p+=`- **Thể**: ${isUp?lTr.name:uTr.name} (${isUp?lTr.element:uTr.element})\n- **Dụng**: ${isUp?uTr.name:lTr.name} (${isUp?uTr.element:lTr.element})\n`}p+=`\n## 6 Hào:\n`;result.lines.forEach((l,i)=>{const isM=result.moving.includes(i);p+=`- ${LINE_NAMES[i]}: ${l.value===9?'Lão Dương':l.value===6?'Lão Âm':l.value===7?'Thiếu Dương':'Thiếu Âm'}${isM?' ★ĐỘNG':''}\n`});if(result.queHo)p+=`\n## Quẻ Hộ: ${result.queHo[1]} — ${result.queHo[5]}\n`;if(result.bien)p+=`\n## Quẻ Biến: ${result.bien[1]} — ${result.bien[5]}\n`;const refs=[findKB(ch[1]),result.queHo?findKB(result.queHo[1]):'',result.bien?findKB(result.bien[1]):''].filter(Boolean).join('\n---\n');if(refs)p+=`\n[REFERENCE]\n${refs}\n[/REFERENCE]\n`;p+=`\n---\nLuận giải. Thể/Dụng, Hộ, Biến. Lời khuyên cụ thể.`;return p};
@@ -331,7 +382,7 @@ export default function App(){
     {!r&&<div style={{textAlign:'center',padding:'16px 0'}}><div style={{fontSize:13,color:T.muted,marginBottom:16}}>{spinning?'Đang gieo quẻ...':'Tap để gieo quẻ'}</div><div onClick={spinning?undefined:castQuestion} style={{display:'inline-block',cursor:spinning?'default':'pointer',opacity:spinning?.7:1}}><YinYang size={150} spinning={spinning}/></div></div>}
     {r&&<div className="result-enter">
       <div style={{fontSize:11,color:T.muted,textAlign:'center',marginBottom:8}}>{r.ts}{r.lunar?` · ÂL ${r.lunar.day}/${r.lunar.month}/${r.lunar.year}`:''}</div>
-      <div style={{display:'flex',justifyContent:'space-evenly',padding:'28px 12px',background:T.card,borderRadius:16,boxShadow:T.shadow,marginBottom:10}}><QB hex={r.chinh} lv={r.lineValues} hl={r.moving} label="Chánh" w={90}/>{r.queHo&&<QB hex={r.queHo} lv={hoLv(r.lineValues)} label="Hộ" w={90}/>}{r.bien&&<QB hex={r.bien} lv={bienLv(r.lineValues,r.moving)} label="Biến" w={90}/>}</div>
+      <div style={{display:'flex',justifyContent:'space-evenly',padding:'20px 10px',background:T.card,borderRadius:16,boxShadow:T.shadow,marginBottom:10}}><QB hex={r.chinh} lv={r.lineValues} hl={r.moving} label="Chánh" w={68}/>{r.queHo&&<QB hex={r.queHo} lv={hoLv(r.lineValues)} label="Hộ" w={68}/>}{r.bien&&<QB hex={r.bien} lv={bienLv(r.lineValues,r.moving)} label="Biến" w={68}/>}</div>
       <TheDung r={r}/>
       <div style={{display:'flex',gap:8,marginBottom:10}}>
         <button onClick={saveQ} style={{flex:1,padding:11,background:T.card,border:'none',borderRadius:10,fontWeight:600,color:T.accent,boxShadow:T.shadow,display:'flex',alignItems:'center',justifyContent:'center',gap:4}}><Icon d={ICONS.save} size={14} color={T.accent}/> Lưu</button>
@@ -349,7 +400,7 @@ export default function App(){
     {pullY>10&&<div style={{textAlign:'center',padding:8,fontSize:12,color:T.accent,fontWeight:600}}>{pullY>50?'↓ Thả để gieo lại':'↓ Kéo xuống gieo lại'}</div>}
     <div style={{maxWidth:600,margin:'0 auto',padding:'16px 20px'}}>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}><button onClick={goHome} style={{background:'none',border:'none',color:T.accent,fontSize:13,fontWeight:600,display:'flex',alignItems:'center',gap:4}}><Icon d={ICONS.back} size={16} color={T.accent}/> Quay lại</button><span style={{fontSize:12,color:T.muted}}>{result.ts}</span><IB icon="share" onClick={()=>shareResult(result)} size={32}/></div>
-      <div style={{display:'flex',justifyContent:'space-evenly',padding:'28px 12px',background:T.card,borderRadius:16,boxShadow:T.shadow,marginBottom:10}}><QB hex={result.chinh} lv={result.lineValues} hl={result.moving} label="Chánh" w={90}/>{result.queHo&&<QB hex={result.queHo} lv={hoLv(result.lineValues)} label="Hộ" w={90}/>}{result.bien&&<QB hex={result.bien} lv={bienLv(result.lineValues,result.moving)} label="Biến" w={90}/>}</div>
+      <div style={{display:'flex',justifyContent:'space-evenly',padding:'20px 10px',background:T.card,borderRadius:16,boxShadow:T.shadow,marginBottom:10}}><QB hex={result.chinh} lv={result.lineValues} hl={result.moving} label="Chánh" w={68}/>{result.queHo&&<QB hex={result.queHo} lv={hoLv(result.lineValues)} label="Hộ" w={68}/>}{result.bien&&<QB hex={result.bien} lv={bienLv(result.lineValues,result.moving)} label="Biến" w={68}/>}</div>
       <TheDung r={result}/>
       <div style={{textAlign:'center',color:T.muted,fontSize:12,padding:8}}>↓ Kéo xuống để gieo lại</div>
       <button onClick={castNgauNhien} style={{width:'100%',padding:12,background:T.card,border:'none',borderRadius:10,color:T.green,fontWeight:600,boxShadow:T.shadow}}>Gieo lại</button>
@@ -362,7 +413,7 @@ export default function App(){
     <input type="text" inputMode="numeric" value={specialNum} onChange={e=>setSpecialNum(e.target.value)} placeholder="12345" style={{width:'100%',padding:18,border:`2px solid ${T.blue}40`,borderRadius:14,fontSize:26,textAlign:'center',background:T.card,color:T.fg,boxSizing:'border-box',marginBottom:14,fontFamily:"'Cormorant Garamond',Georgia,serif",fontWeight:600}}/>
     <button onClick={castDacBiet} style={{width:'100%',padding:14,background:T.blue,color:'#fff',border:'none',borderRadius:12,fontWeight:600,fontSize:15,marginBottom:16}}>Xem Quẻ</button>
     {r&&<div className="result-enter" style={{background:T.card,borderRadius:16,boxShadow:T.shadow,padding:16,marginBottom:12}}>
-      <div style={{display:'flex',justifyContent:'space-evenly',marginBottom:12}}><QB hex={r.chinh} lv={r.lineValues} hl={r.moving} label="Chánh" w={70}/>{r.queHo&&<QB hex={r.queHo} lv={hoLv(r.lineValues)} label="Hộ" w={70}/>}{r.bien&&<QB hex={r.bien} lv={bienLv(r.lineValues,r.moving)} label="Biến" w={70}/>}</div>
+      <div style={{display:'flex',justifyContent:'space-evenly',marginBottom:12}}><QB hex={r.chinh} lv={r.lineValues} hl={r.moving} label="Chánh" w={55}/>{r.queHo&&<QB hex={r.queHo} lv={hoLv(r.lineValues)} label="Hộ" w={55}/>}{r.bien&&<QB hex={r.bien} lv={bienLv(r.lineValues,r.moving)} label="Biến" w={55}/>}</div>
       <TheDung r={r}/>
       <button onClick={()=>{setSpecialNum('');setDacBietResult(null)}} style={{width:'100%',padding:10,background:T.bg,border:'none',borderRadius:8,color:T.blue,fontWeight:600}}>Gieo tiếp số khác</button>
     </div>}
@@ -385,7 +436,7 @@ export default function App(){
     </div>
     {result.lunar&&<div style={{fontSize:11,color:T.muted,textAlign:'center',marginBottom:6}}>ÂL {result.lunar.day}/{result.lunar.month}/{result.lunar.year}</div>}
     {(result.question||result.name)&&<div style={{padding:12,background:T.card,borderRadius:12,marginBottom:10,fontSize:13,boxShadow:T.shadow}}>{result.name&&<div style={{fontWeight:600,marginBottom:2}}>{result.name}</div>}{result.question&&<div style={{color:T.muted}}>{result.question}</div>}</div>}
-    <div style={{display:'flex',justifyContent:'space-evenly',padding:'28px 12px',background:T.card,borderRadius:16,boxShadow:T.shadow,marginBottom:10}}><QB hex={result.chinh} lv={result.lineValues} hl={result.moving} label="Chánh" w={90}/>{result.queHo&&<QB hex={result.queHo} lv={hoLv(result.lineValues)} label="Hộ" w={90}/>}{result.bien&&<QB hex={result.bien} lv={bienLv(result.lineValues,result.moving)} label="Biến" w={90}/>}</div>
+    <div style={{display:'flex',justifyContent:'space-evenly',padding:'20px 10px',background:T.card,borderRadius:16,boxShadow:T.shadow,marginBottom:10}}><QB hex={result.chinh} lv={result.lineValues} hl={result.moving} label="Chánh" w={68}/>{result.queHo&&<QB hex={result.queHo} lv={hoLv(result.lineValues)} label="Hộ" w={68}/>}{result.bien&&<QB hex={result.bien} lv={bienLv(result.lineValues,result.moving)} label="Biến" w={68}/>}</div>
     <TheDung r={result}/>
     <details style={{marginBottom:10}}><summary style={{fontSize:12,color:T.muted,cursor:'pointer',padding:'6px 0'}}>▸ Chi tiết 6 hào</summary><div style={{padding:12,background:T.card,borderRadius:10,boxShadow:T.shadow,fontSize:12}}>{[...result.lines].reverse().map((l,ri)=>{const i=5-ri;const isM=result.moving.includes(i);return<div key={i} style={{padding:'4px 0',color:isM?T.red:T.fg}}>{LINE_NAMES[i]}: {l.value===9?'Lão Dương':l.value===6?'Lão Âm':l.value===7?'Thiếu Dương':'Thiếu Âm'}{isM?' (động)':''}</div>})}</div></details>
     <div style={{marginBottom:10}}><div style={{fontSize:12,color:T.muted,fontWeight:600,marginBottom:4}}>Phạm vi sự việc</div><textarea value={phamVi} onChange={e=>setPhamVi(e.target.value)} rows={2} placeholder="Bổ sung hoàn cảnh..." style={{width:'100%',padding:12,border:`1px solid ${T.border}`,borderRadius:10,boxSizing:'border-box',fontSize:13,fontFamily:'inherit',resize:'none',background:T.card,color:T.fg}}/></div>
@@ -439,22 +490,22 @@ export default function App(){
         <button onClick={nextM} style={{width:32,height:32,borderRadius:8,border:`1px solid ${T.border}`,background:T.card,fontSize:16,display:'flex',alignItems:'center',justifyContent:'center'}}>›</button>
       </div>
       <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:2,marginBottom:2}}>
-        {dowLabels.map((d,i)=><div key={d} style={{textAlign:'center',fontSize:10,fontWeight:600,color:i===0?T.red:i===6?'#1565c0':T.muted,padding:'2px 0'}}>{d}</div>)}
+        {dowLabels.map((d,i)=><div key={d} style={{textAlign:'center',fontSize:11,fontWeight:600,color:i===0?T.calRed:i===6?'#1976d2':T.muted,padding:'2px 0'}}>{d}</div>)}
       </div>
-      <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:2,flex:1}}>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:1,flex:1}}>
         {cells.map((d,i)=>{
           if(!d)return<div key={i}/>;
           const lu=s2l(d,calMonth,calYear);
           const dow=new Date(calYear,calMonth-1,d).getDay();
           const isNew=lu.day===1;const isFull=lu.day===15;
           const dq=dayQue(d,calMonth,calYear);
-          const luColor=(isNew||isFull)?T.red:T.muted;
-          const luText=isNew?`${lu.day}/${lu.month}`:lu.day;
+          const luColor=(isNew||isFull)?T.calRed:T.muted;
+          const luText=isNew?`${lu.day}/${lu.month}`:isFull?`${lu.day}`:lu.day;
           return<button key={i} onClick={()=>{setCalDay(d);setView('lichday')}}
-            style={{padding:'2px 1px',background:isToday(d)?T.accentBg:T.card,border:isToday(d)?`2px solid ${T.accent}`:`1px solid ${T.border}`,borderRadius:6,textAlign:'center',cursor:'pointer',display:'flex',flexDirection:'column',justifyContent:'center',alignItems:'center',minHeight:0}}>
-            <div style={{fontSize:13,fontWeight:isToday(d)?700:500,color:dow===0?T.red:dow===6?'#1565c0':T.fg,lineHeight:1.2}}>{d}</div>
-            <div style={{fontSize:8,color:luColor,fontWeight:(isNew||isFull)?700:400,lineHeight:1.2}}>{luText}</div>
-            {dq&&<div style={{fontSize:7,color:T.accent,lineHeight:1}}>{calQ(dq)}</div>}
+            style={{padding:'3px 1px',background:isToday(d)?T.accentSoft:'transparent',borderRadius:6,textAlign:'center',cursor:'pointer',display:'flex',flexDirection:'column',justifyContent:'center',alignItems:'center',border:isToday(d)?`2px solid ${T.accent}`:'none'}}>
+            <div style={{fontSize:16,fontWeight:isToday(d)?700:500,color:dow===0?T.calRed:dow===6?'#1976d2':T.fg,lineHeight:1.3}}>{d}</div>
+            <div style={{fontSize:10,color:luColor,fontWeight:(isNew||isFull)?700:400,lineHeight:1.2}}>{luText}</div>
+            {dq&&<div style={{fontSize:8,color:T.accent,lineHeight:1.1}}>{calQ(dq)}</div>}
           </button>
         })}
       </div>
@@ -520,16 +571,16 @@ export default function App(){
       <div>
         {hourQues.map((q,hi)=>{
           if(!q.chinh)return null;
-          return<button key={hi} onClick={()=>setPopup(q.chinh)}
+          return<div key={hi}
             style={{width:'100%',display:'grid',gridTemplateColumns:'54px 1fr 1fr 1fr',gap:2,alignItems:'center',background:T.card,border:`1px solid ${T.border}`,borderRadius:6,textAlign:'center',padding:'8px 4px',marginBottom:2}}>
             <div>
               <div style={{fontSize:13,fontWeight:700,color:T.accent}}>{CHI_NAMES[hi]}</div>
               <div style={{fontSize:11,color:T.fg}}>{CHI_HOURS[hi]}h</div>
             </div>
-            <div style={{fontSize:13,fontWeight:600,color:T.fg}}>{calQ(q.chinh)}</div>
-            <div style={{fontSize:13,fontWeight:600,color:T.fg}}>{q.queHo?calQ(q.queHo):''}</div>
-            <div style={{fontSize:13,fontWeight:600,color:T.fg}}>{q.bien?calQ(q.bien):''}</div>
-          </button>
+            <div onClick={()=>setPopup(q.chinh)} style={{cursor:'pointer',fontSize:13,fontWeight:600,color:T.fg}}>{calQ(q.chinh)}</div>
+            <div onClick={()=>q.queHo&&setPopup(q.queHo)} style={{cursor:'pointer',fontSize:13,fontWeight:600,color:T.fg}}>{q.queHo?calQ(q.queHo):''}</div>
+            <div onClick={()=>q.bien&&setPopup(q.bien)} style={{cursor:'pointer',fontSize:13,fontWeight:600,color:T.fg}}>{q.bien?calQ(q.bien):''}</div>
+          </div>
         })}
       </div>
     </div>{Pop()}</div>;
