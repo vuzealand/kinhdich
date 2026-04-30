@@ -187,11 +187,12 @@ export default function App(){
   const[calYear,setCalYear]=useState(()=>new Date().getFullYear());
   const[calMonth,setCalMonth]=useState(()=>new Date().getMonth()+1);
   const[calDay,setCalDay]=useState(null);
+  const[calHour,setCalHour]=useState(null);
   const[showMonthPicker,setShowMonthPicker]=useState(false); // selected day for 12-hour view
 
   const toggleDark=()=>{const n=!dark;setDark(n);localStorage.setItem('kd_dark',n?'1':'0')};
   const goHome=()=>{setView('home');setResult(null);setLuanResult('');setChatHistory([]);setDacBietResult(null)};
-  const goBack=()=>{if(view==='lichday')setView('lichviet');else goHome()};
+  const goBack=()=>{if(view==='lichhour')setView('lichday');else if(view==='lichday')setView('lichviet');else goHome()};
 
   // Swipe
   const swipeRef=useRef({x:0,t:0});
@@ -492,7 +493,7 @@ export default function App(){
       <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:2,marginBottom:2}}>
         {dowLabels.map((d,i)=><div key={d} style={{textAlign:'center',fontSize:11,fontWeight:600,color:i===0?T.calRed:i===6?'#1976d2':T.muted,padding:'2px 0'}}>{d}</div>)}
       </div>
-      <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:1,flex:1}}>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:2}}>
         {cells.map((d,i)=>{
           if(!d)return<div key={i}/>;
           const lu=s2l(d,calMonth,calYear);
@@ -500,12 +501,13 @@ export default function App(){
           const isNew=lu.day===1;const isFull=lu.day===15;
           const dq=dayQue(d,calMonth,calYear);
           const luColor=(isNew||isFull)?T.calRed:T.muted;
-          const luText=isNew?`${lu.day}/${lu.month}`:isFull?`${lu.day}`:lu.day;
+          const luText=isNew?`${lu.day}/${lu.month}`:lu.day;
+          const cellBg=isToday(d)?T.accentSoft:dark?'#1e1e24':'#ede8df';
           return<button key={i} onClick={()=>{setCalDay(d);setView('lichday')}}
-            style={{padding:'3px 1px',background:isToday(d)?T.accentSoft:'transparent',borderRadius:6,textAlign:'center',cursor:'pointer',display:'flex',flexDirection:'column',justifyContent:'center',alignItems:'center',border:isToday(d)?`2px solid ${T.accent}`:'none'}}>
-            <div style={{fontSize:16,fontWeight:isToday(d)?700:500,color:dow===0?T.calRed:dow===6?'#1976d2':T.fg,lineHeight:1.3}}>{d}</div>
+            style={{padding:'4px 2px',background:cellBg,borderRadius:6,textAlign:'center',cursor:'pointer',display:'flex',flexDirection:'column',justifyContent:'center',alignItems:'center',border:isToday(d)?`2px solid ${T.accent}`:'none',aspectRatio:'1/1.1'}}>
+            <div style={{fontSize:17,fontWeight:isToday(d)?700:600,color:dow===0?T.calRed:dow===6?'#1976d2':T.fg,lineHeight:1.2}}>{d}</div>
+            {dq&&<div style={{fontSize:9,color:T.accent,lineHeight:1.2,fontWeight:500}}>{calQ(dq)}</div>}
             <div style={{fontSize:10,color:luColor,fontWeight:(isNew||isFull)?700:400,lineHeight:1.2}}>{luText}</div>
-            {dq&&<div style={{fontSize:8,color:T.accent,lineHeight:1.1}}>{calQ(dq)}</div>}
           </button>
         })}
       </div>
@@ -560,11 +562,12 @@ export default function App(){
       </div>
 
       {/* Column headers */}
-      <div style={{display:'grid',gridTemplateColumns:'54px 1fr 1fr 1fr',gap:2,marginBottom:2,padding:'0 4px'}}>
+      <div style={{display:'grid',gridTemplateColumns:'54px 1fr 1fr 1fr 24px',gap:2,marginBottom:2,padding:'0 4px'}}>
         <div style={{fontSize:10,fontWeight:600,color:T.muted,textAlign:'center'}}>Giờ</div>
         <div style={{fontSize:10,fontWeight:600,color:T.accent,textAlign:'center'}}>Chánh</div>
         <div style={{fontSize:10,fontWeight:600,color:T.muted,textAlign:'center'}}>Hộ</div>
         <div style={{fontSize:10,fontWeight:600,color:T.muted,textAlign:'center'}}>Biến</div>
+        <div/>
       </div>
 
       {/* 12 hours */}
@@ -572,17 +575,71 @@ export default function App(){
         {hourQues.map((q,hi)=>{
           if(!q.chinh)return null;
           return<div key={hi}
-            style={{width:'100%',display:'grid',gridTemplateColumns:'54px 1fr 1fr 1fr',gap:2,alignItems:'center',background:T.card,border:`1px solid ${T.border}`,borderRadius:6,textAlign:'center',padding:'8px 4px',marginBottom:2}}>
+            style={{width:'100%',display:'grid',gridTemplateColumns:'54px 1fr 1fr 1fr 24px',gap:2,alignItems:'center',background:T.card,border:`1px solid ${T.border}`,borderRadius:6,textAlign:'center',padding:'8px 4px',marginBottom:2}}>
             <div>
               <div style={{fontSize:13,fontWeight:700,color:T.accent}}>{CHI_NAMES[hi]}</div>
               <div style={{fontSize:11,color:T.fg}}>{CHI_HOURS[hi]}h</div>
             </div>
-            <div onClick={()=>setPopup(q.chinh)} style={{cursor:'pointer',fontSize:13,fontWeight:600,color:T.fg}}>{calQ(q.chinh)}</div>
+            <div onClick={()=>q.chinh&&setPopup(q.chinh)} style={{cursor:'pointer',fontSize:13,fontWeight:600,color:T.fg}}>{calQ(q.chinh)}</div>
             <div onClick={()=>q.queHo&&setPopup(q.queHo)} style={{cursor:'pointer',fontSize:13,fontWeight:600,color:T.fg}}>{q.queHo?calQ(q.queHo):''}</div>
             <div onClick={()=>q.bien&&setPopup(q.bien)} style={{cursor:'pointer',fontSize:13,fontWeight:600,color:T.fg}}>{q.bien?calQ(q.bien):''}</div>
+            <div onClick={()=>{setCalHour(hi);setView('lichhour')}} style={{cursor:'pointer',fontSize:11,color:T.accent,fontWeight:600}}>▸</div>
           </div>
         })}
       </div>
+    </div>{Pop()}</div>;
+  }
+
+  // ======== LỊCH VIỆT — Hour Detail: 12 khung 10 phút ========
+  if(view==='lichhour'&&calDay&&calHour!==null){
+    const lu=s2l(calDay,calMonth,calYear);
+    const chiYear=((lu.year+8)%12)+1;
+    const hourChi=calHour+1;
+    const sumUpper=chiYear+lu.month+lu.day+hourChi;
+    // Start time for this Chi hour
+    const startH=calHour===0?23:calHour*2-1;
+    const minQues=Array.from({length:12},(_,mi)=>{
+      const sumLower=sumUpper+(mi+1);
+      const uRem=sumUpper%8;const uNum=uRem===0?8:uRem;
+      const lRem=sumLower%8;const lNum=lRem===0?8:lRem;
+      const hRem=sumLower%6;const haoIdx=hRem===0?5:(hRem-1);
+      const uKey=MH_NUM[uNum],lKey=MH_NUM[lNum];
+      const lv=[...lKey.split('').reverse().map(Number),...uKey.split('').reverse().map(Number)];
+      return{chinh:lv2hex(lv),queHo:lv2ho(lv),bien:lv2bien(lv,[haoIdx])};
+    });
+    // Time labels: 12 intervals of 10 min
+    const timeLabels=Array.from({length:12},(_,mi)=>{
+      const totalMin=mi*10;
+      const h=(startH+Math.floor(totalMin/60))%24;
+      const m=totalMin%60;
+      const h2=(startH+Math.floor((totalMin+10)/60))%24;
+      const m2=(totalMin+10)%60;
+      return `${h}h${m.toString().padStart(2,'0')} - ${h2}h${m2.toString().padStart(2,'0')}`;
+    });
+
+    return<div style={wrapScroll} onTouchStart={onTS} onTouchMove={onTM} onTouchEnd={onTE}><div style={{maxWidth:480,margin:'0 auto',padding:'12px 16px'}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
+        <button onClick={()=>setView('lichday')} style={{background:'none',border:'none',color:T.accent,fontSize:13,fontWeight:600}}>← Quay lại</button>
+        <div style={{textAlign:'center'}}>
+          <div style={{fontSize:15,fontWeight:700,color:T.fg}}>{calDay}/{calMonth}/{calYear}</div>
+          <div style={{fontSize:13,fontWeight:600,color:T.accent}}>Giờ {CHI_NAMES[calHour]} ({CHI_HOURS[calHour]}h)</div>
+        </div>
+        <div style={{width:50}}/>
+      </div>
+
+      {minQues.map((q,mi)=>{
+        if(!q.chinh)return null;
+        return<div key={mi} style={{borderBottom:`1px solid ${T.border}`,padding:'10px 0'}}>
+          <div style={{fontSize:12,color:T.muted,marginBottom:4}}>{timeLabels[mi]}</div>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'0 8px'}}>
+            <div onClick={()=>setPopup(q.chinh)} style={{cursor:'pointer',fontSize:15,fontWeight:600,color:T.fg,flex:1,textAlign:'left'}}>{calQ(q.chinh)}</div>
+            <span style={{color:T.muted,margin:'0 8px'}}>—</span>
+            <div onClick={()=>q.queHo&&setPopup(q.queHo)} style={{cursor:'pointer',fontSize:15,fontWeight:600,color:T.fg,flex:1,textAlign:'center'}}>{q.queHo?calQ(q.queHo):''}</div>
+            <span style={{color:T.muted,margin:'0 8px'}}>—</span>
+            <div onClick={()=>q.bien&&setPopup(q.bien)} style={{cursor:'pointer',fontSize:15,fontWeight:600,color:T.fg,flex:1,textAlign:'right'}}>{q.bien?calQ(q.bien):''}</div>
+          </div>
+        </div>
+      })}
     </div>{Pop()}</div>;
   }
 
