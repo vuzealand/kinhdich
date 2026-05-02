@@ -209,12 +209,34 @@ export default function App(){
   const goHome=()=>{setView('home');setResult(null);setLuanResult('');setChatHistory([]);setDacBietResult(null)};
   const goBack=()=>{if(view==='lichhour')setView('lichday');else if(view==='lichday')setView(calFrom);else if(view==='tracuu')goHome();else goHome()};
 
-  // Swipe - iOS style: follow finger 1:1, velocity-based release
+  // Swipe - iOS style
   const swipeRef=useRef({x:0,y:0,t:0,active:false});
   const[swipeX,setSwipeX]=useState(0);
+  const skipTransRef=useRef(false); // skip transition after goBack
+
   const onTS=useCallback(e=>{const t=e.touches[0];swipeRef.current={x:t.clientX,y:t.clientY,t:Date.now(),active:t.clientX<60}},[]);
   const onTM=useCallback(e=>{if(!swipeRef.current.active)return;const dx=e.touches[0].clientX-swipeRef.current.x;const dy=Math.abs(e.touches[0].clientY-swipeRef.current.y);if(dy>Math.abs(dx)&&dx<15){swipeRef.current.active=false;return}if(dx>0)setSwipeX(dx)},[]);
-  const onTE=useCallback(e=>{if(!swipeRef.current.active){setSwipeX(0);return}const dx=e.changedTouches[0].clientX-swipeRef.current.x;const dt=Date.now()-swipeRef.current.t;const v=dx/Math.max(dt,1);const W=window.innerWidth;if(dx>W*.35||v>.5){setSwipeX(W);setTimeout(()=>{setSwipeX(0);goBack()},280)}else{setSwipeX(0)}},[view]);
+  const onTE=useCallback(e=>{
+    if(!swipeRef.current.active){setSwipeX(0);return}
+    const dx=e.changedTouches[0].clientX-swipeRef.current.x;
+    const dt=Date.now()-swipeRef.current.t;
+    const v=dx/Math.max(dt,1);
+    const W=window.innerWidth;
+    if(dx>W*.35||v>.5){
+      // Animate current page off right edge
+      setSwipeX(W);
+      setTimeout(()=>{
+        // Switch view with NO transition — new page appears instantly at x=0
+        skipTransRef.current=true;
+        goBack();
+        setSwipeX(0);
+        // Re-enable transition after paint
+        requestAnimationFrame(()=>{requestAnimationFrame(()=>{skipTransRef.current=false})});
+      },280);
+    }else{
+      setSwipeX(0); // spring back
+    }
+  },[view]);
   const pullRef=useRef(0);const[pullY,setPullY]=useState(0);
 
   // KB
@@ -233,16 +255,17 @@ export default function App(){
     shadow:dark?'none':'0 2px 12px rgba(0,0,0,.05)',
   };
 
-  // iOS-style swipe: current page slides right with shadow, dimmed bg behind
-  const swipeShadow=swipeX>0?`-8px 0 30px rgba(0,0,0,${Math.min(swipeX/300,.35)})`:undefined;
-  const isAnimating=swipeRef.current.active===false&&swipeX>0;
+  // Wrap styles
+  const isSwiping=swipeRef.current.active&&swipeX>0;
+  const isFlying=!swipeRef.current.active&&swipeX>0;
+  const noTrans=skipTransRef.current;
   const wrap={
     position:'absolute',inset:0,background:T.bg,color:T.fg,overflow:'hidden',
     paddingTop:'env(safe-area-inset-top)',paddingBottom:'env(safe-area-inset-bottom)',
     paddingLeft:'env(safe-area-inset-left)',paddingRight:'env(safe-area-inset-right)',
-    transform:`translateX(${swipeX}px)`,
-    transition:(swipeX===0||isAnimating)?'transform .3s cubic-bezier(.2,.9,.3,1)':'none',
-    boxShadow:swipeShadow,
+    transform:swipeX>0?`translateX(${swipeX}px)`:'none',
+    transition:noTrans?'none':(!isSwiping?'transform .3s cubic-bezier(.2,.9,.3,1)':'none'),
+    boxShadow:swipeX>10?`-6px 0 24px rgba(0,0,0,${Math.min(swipeX/400,.3)})`:undefined,
   };
   const wrapScroll={...wrap,overflow:'auto',WebkitOverflowScrolling:'touch'};
 
