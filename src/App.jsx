@@ -196,6 +196,7 @@ export default function App(){
   const[calMonth,setCalMonth]=useState(()=>new Date().getMonth()+1);
   const[calDay,setCalDay]=useState(null);
   const[calHour,setCalHour]=useState(null);
+  const[calFrom,setCalFrom]=useState('lichviet'); // tracks where lichday was opened from
   const[showMonthPicker,setShowMonthPicker]=useState(false);
   // Tra cứu
   const[tcChinh,setTcChinh]=useState('');
@@ -206,7 +207,7 @@ export default function App(){
 
   const toggleDark=()=>{const n=!dark;setDark(n);localStorage.setItem('kd_dark',n?'1':'0')};
   const goHome=()=>{setView('home');setResult(null);setLuanResult('');setChatHistory([]);setDacBietResult(null)};
-  const goBack=()=>{if(view==='lichhour')setView('lichday');else if(view==='lichday')setView('lichviet');else if(view==='tracuu')goHome();else goHome()};
+  const goBack=()=>{if(view==='lichhour')setView('lichday');else if(view==='lichday')setView(calFrom);else if(view==='tracuu')goHome();else goHome()};
 
   // Swipe - iOS style: follow finger 1:1, velocity-based release
   const swipeRef=useRef({x:0,y:0,t:0,active:false});
@@ -500,12 +501,12 @@ export default function App(){
 
   // Tra cứu: search year for matching quẻ
   const searchQue=()=>{
-    if(!tcChinh){alert('Chọn quẻ Chánh');return}
+    if(!tcChinh||!tcBien){alert('Chọn cả quẻ Chánh và Biến');return}
     setTcLoading(true);setTcResults(null);
     setTimeout(()=>{
       const matches=[];
       const targetC=tcChinh.toUpperCase();
-      const targetB=tcBien?tcBien.toUpperCase():'';
+      const targetB=tcBien.toUpperCase();
       const daysInYear=[31,((tcYear%4===0&&tcYear%100!==0)||tcYear%400===0)?29:28,31,30,31,30,31,31,30,31,30,31];
       for(let m=1;m<=12;m++){
         for(let d=1;d<=daysInYear[m-1];d++){
@@ -522,19 +523,19 @@ export default function App(){
             const lv=[...lKey.split('').reverse().map(Number),...uKey.split('').reverse().map(Number)];
             const chinh=lv2hex(lv);
             if(!chinh)continue;
-            const cName=chinh[1].toUpperCase();
-            if(!cName.includes(targetC))continue;
-            // Check biến if specified
-            if(targetB){
-              const bien=lv2bien(lv,[haoIdx]);
-              if(!bien||!bien[1].toUpperCase().includes(targetB))continue;
-            }
-            matches.push({d,m,hi,chinh,luDay:lu.day,luMonth:lu.month});
-            if(matches.length>=100)break;
+            const cShort=calQ(chinh);
+            if(cShort.toUpperCase()!==targetC)continue;
+            const bien=lv2bien(lv,[haoIdx]);
+            if(!bien)continue;
+            const bShort=calQ(bien);
+            if(bShort.toUpperCase()!==targetB)continue;
+            const queHo=lv2ho(lv);
+            matches.push({d,m,hi,chinh,bien,queHo,luDay:lu.day,luMonth:lu.month});
+            if(matches.length>=200)break;
           }
-          if(matches.length>=100)break;
+          if(matches.length>=200)break;
         }
-        if(matches.length>=100)break;
+        if(matches.length>=200)break;
       }
       setTcResults(matches);setTcLoading(false);
     },50);
@@ -576,7 +577,7 @@ export default function App(){
           const luColor=(isNew||isFull)?T.calRed:T.muted;
           const luText=isNew?`${lu.day}/${lu.month}`:lu.day;
           const cellBg=isToday(d)?T.accentSoft:dark?'#1e1e24':'#ede8df';
-          return<button key={i} onClick={()=>{setCalDay(d);setView('lichday')}}
+          return<button key={i} onClick={()=>{setCalDay(d);setCalFrom('lichviet');setView('lichday')}}
             style={{padding:'4px 2px',background:cellBg,borderRadius:6,textAlign:'center',cursor:'pointer',display:'flex',flexDirection:'column',justifyContent:'center',alignItems:'center',border:isToday(d)?`2px solid ${T.accent}`:'none',aspectRatio:'1/1.1'}}>
             <div style={{fontSize:17,fontWeight:isToday(d)?700:600,color:dow===0?T.calRed:dow===6?'#1976d2':T.fg,lineHeight:1.2}}>{d}</div>
             {dq&&<div style={{fontSize:9,color:T.accent,lineHeight:1.2,fontWeight:500}}>{calQ(dq)}</div>}
@@ -626,7 +627,7 @@ export default function App(){
     return<div style={wrapScroll} onTouchStart={onTS} onTouchMove={onTM} onTouchEnd={onTE}><div style={{maxWidth:480,margin:'0 auto',padding:'12px 16px'}}>
       {/* Header */}
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
-        <button onClick={()=>setView('lichviet')} style={{background:'none',border:'none',color:T.accent,fontSize:13,fontWeight:600}}>← Lịch</button>
+        <button onClick={()=>setView(calFrom)} style={{background:'none',border:'none',color:T.accent,fontSize:13,fontWeight:600}}>← Quay lại</button>
         <div style={{textAlign:'center'}}>
           <span style={{fontSize:15,fontWeight:700,color:T.fg}}>{calDay}/{calMonth}/{calYear}</span>
           <span style={{fontSize:12,color:T.muted,marginLeft:8}}>ÂL {lu.day}/{lu.month}</span>
@@ -665,7 +666,6 @@ export default function App(){
 
   // ======== TRA CỨU NGÀY THEO QUẺ ========
   if(view==='tracuu'){
-    // Build list of all 64 quẻ names for dropdown
     const queList=HEXAGRAMS.map(h=>{const p=h[1].split(' ');return{full:h[1],short:p.length>2?p.slice(2).join(' '):h[1]}}).sort((a,b)=>a.short.localeCompare(b.short));
 
     return<div style={wrapScroll} onTouchStart={onTS} onTouchMove={onTM} onTouchEnd={onTE}><div style={{maxWidth:480,margin:'0 auto',padding:'16px 20px'}}>
@@ -675,51 +675,56 @@ export default function App(){
         <div style={{width:50}}/>
       </div>
 
-      {/* Input */}
       <div style={{background:T.card,borderRadius:14,padding:16,border:`1px solid ${T.border}`,marginBottom:16,boxShadow:T.shadow}}>
         <div style={{marginBottom:12}}>
           <label style={{fontSize:12,fontWeight:600,color:T.accent,display:'block',marginBottom:4}}>Quẻ Chánh *</label>
           <select value={tcChinh} onChange={e=>setTcChinh(e.target.value)}
             style={{width:'100%',padding:10,border:`1px solid ${T.border}`,borderRadius:8,fontSize:14,background:T.bg,color:T.fg}}>
             <option value="">— Chọn quẻ —</option>
-            {queList.map(q=><option key={q.full} value={q.short}>{q.short} ({q.full})</option>)}
+            {queList.map(q=><option key={'c'+q.full} value={q.short}>{q.short} ({q.full})</option>)}
           </select>
         </div>
         <div style={{marginBottom:12}}>
-          <label style={{fontSize:12,fontWeight:600,color:T.muted,display:'block',marginBottom:4}}>Quẻ Biến (tùy chọn)</label>
+          <label style={{fontSize:12,fontWeight:600,color:T.accent,display:'block',marginBottom:4}}>Quẻ Biến *</label>
           <select value={tcBien} onChange={e=>setTcBien(e.target.value)}
             style={{width:'100%',padding:10,border:`1px solid ${T.border}`,borderRadius:8,fontSize:14,background:T.bg,color:T.fg}}>
-            <option value="">— Không lọc —</option>
-            {queList.map(q=><option key={q.full} value={q.short}>{q.short} ({q.full})</option>)}
+            <option value="">— Chọn quẻ —</option>
+            {queList.map(q=><option key={'b'+q.full} value={q.short}>{q.short} ({q.full})</option>)}
           </select>
         </div>
-        <div style={{marginBottom:12}}>
-          <label style={{fontSize:12,fontWeight:600,color:T.muted,display:'block',marginBottom:4}}>Năm</label>
-          <input type="number" value={tcYear} onChange={e=>setTcYear(parseInt(e.target.value)||2026)}
-            style={{width:100,padding:10,border:`1px solid ${T.border}`,borderRadius:8,fontSize:16,fontWeight:700,textAlign:'center',background:T.bg,color:T.fg}}/>
+        <div style={{display:'flex',gap:10,alignItems:'flex-end',marginBottom:12}}>
+          <div>
+            <label style={{fontSize:12,fontWeight:600,color:T.muted,display:'block',marginBottom:4}}>Năm</label>
+            <input type="number" value={tcYear} onChange={e=>setTcYear(parseInt(e.target.value)||2026)}
+              style={{width:90,padding:10,border:`1px solid ${T.border}`,borderRadius:8,fontSize:16,fontWeight:700,textAlign:'center',background:T.bg,color:T.fg}}/>
+          </div>
+          <button onClick={searchQue} disabled={tcLoading}
+            style={{flex:1,padding:12,background:T.accent,color:'#fff',border:'none',borderRadius:10,fontWeight:700,fontSize:15,opacity:tcLoading?.5:1}}>
+            {tcLoading?'Đang tìm...':'🔍 Tìm Kiếm'}
+          </button>
         </div>
-        <button onClick={searchQue} disabled={tcLoading}
-          style={{width:'100%',padding:12,background:T.accent,color:'#fff',border:'none',borderRadius:10,fontWeight:700,fontSize:15,opacity:tcLoading?.5:1}}>
-          {tcLoading?'Đang tìm...':'🔍 Tìm Kiếm'}
-        </button>
       </div>
 
-      {/* Results */}
       {tcResults&&<div>
         <div style={{fontSize:13,fontWeight:600,color:T.muted,marginBottom:8}}>
-          {tcResults.length===0?'Không tìm thấy kết quả':`Tìm thấy ${tcResults.length} kết quả${tcResults.length>=100?' (hiện tối đa 100)':''}`}
+          {tcResults.length===0?'Không tìm thấy trong năm '+tcYear:`${tcResults.length} ngày giờ tìm thấy`}
         </div>
         {tcResults.map((r,i)=>{
           const dow=['CN','T2','T3','T4','T5','T6','T7'][new Date(tcYear,r.m-1,r.d).getDay()];
-          return<div key={i} onClick={()=>setPopup(r.chinh)}
-            style={{display:'flex',alignItems:'center',gap:10,padding:'10px 12px',marginBottom:4,background:T.card,border:`1px solid ${T.border}`,borderRadius:8,cursor:'pointer'}}>
-            <div style={{minWidth:80}}>
-              <div style={{fontSize:14,fontWeight:600,color:T.fg}}>{dow} {r.d}/{r.m}</div>
+          return<div key={i} onClick={()=>{setCalYear(tcYear);setCalMonth(r.m);setCalDay(r.d);setCalFrom('tracuu');setView('lichday')}}
+            style={{display:'grid',gridTemplateColumns:'1fr auto 1fr',gap:8,alignItems:'center',padding:'12px 14px',marginBottom:4,background:T.card,border:`1px solid ${T.border}`,borderRadius:10,cursor:'pointer'}}>
+            <div>
+              <div style={{fontSize:15,fontWeight:600,color:T.fg}}>{dow} {r.d}/{r.m}/{tcYear}</div>
               <div style={{fontSize:11,color:T.muted}}>ÂL {r.luDay}/{r.luMonth}</div>
             </div>
-            <div style={{fontSize:13,fontWeight:700,color:T.accent}}>{CHI_NAMES[r.hi]}</div>
-            <div style={{fontSize:11,color:T.muted}}>{CHI_HOURS[r.hi]}h</div>
-            <div style={{flex:1,textAlign:'right',fontSize:13,fontWeight:600,color:T.fg}}>{calQ(r.chinh)}</div>
+            <div style={{textAlign:'center'}}>
+              <div style={{fontSize:13,fontWeight:700,color:T.accent}}>{CHI_NAMES[r.hi]}</div>
+              <div style={{fontSize:10,color:T.muted}}>{CHI_HOURS[r.hi]}h</div>
+            </div>
+            <div style={{textAlign:'right'}}>
+              <div style={{fontSize:13,fontWeight:600,color:T.fg}}>{calQ(r.chinh)}</div>
+              <div style={{fontSize:11,color:T.muted}}>→ {calQ(r.bien)}</div>
+            </div>
           </div>
         })}
       </div>}
