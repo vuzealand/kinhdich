@@ -209,33 +209,44 @@ export default function App(){
   const goHome=()=>{setView('home');setResult(null);setLuanResult('');setChatHistory([]);setDacBietResult(null)};
   const goBack=()=>{if(view==='lichhour')setView('lichday');else if(view==='lichday')setView(calFrom);else if(view==='tracuu')goHome();else goHome()};
 
-  // Swipe - iOS style
-  const swipeRef=useRef({x:0,y:0,t:0,active:false});
-  const[swipeX,setSwipeX]=useState(0);
-  const skipTransRef=useRef(false); // skip transition after goBack
+  // Swipe - direct DOM for 60fps, no React re-render during drag
+  const swipeRef=useRef({x:0,y:0,t:0,active:false,dx:0});
+  const pageRef=useRef(null);
+  const skipTransRef=useRef(false);
 
-  const onTS=useCallback(e=>{const t=e.touches[0];swipeRef.current={x:t.clientX,y:t.clientY,t:Date.now(),active:t.clientX<60}},[]);
-  const onTM=useCallback(e=>{if(!swipeRef.current.active)return;const dx=e.touches[0].clientX-swipeRef.current.x;const dy=Math.abs(e.touches[0].clientY-swipeRef.current.y);if(dy>Math.abs(dx)&&dx<15){swipeRef.current.active=false;return}if(dx>0)setSwipeX(dx)},[]);
+  const setPageX=(x,animate=false)=>{
+    const el=pageRef.current;if(!el)return;
+    el.style.transition=animate?'transform .3s cubic-bezier(.25,.46,.45,.94)':'none';
+    el.style.transform=x>0?`translate3d(${x}px,0,0)`:'none';
+    el.style.boxShadow=x>10?`-4px 0 20px rgba(0,0,0,${Math.min(x/500,.25)})`:'none';
+  };
+
+  const onTS=useCallback(e=>{const t=e.touches[0];swipeRef.current={x:t.clientX,y:t.clientY,t:Date.now(),active:t.clientX<60,dx:0}},[]);
+  const onTM=useCallback(e=>{
+    if(!swipeRef.current.active)return;
+    const dx=e.touches[0].clientX-swipeRef.current.x;
+    const dy=Math.abs(e.touches[0].clientY-swipeRef.current.y);
+    if(dy>Math.abs(dx)&&dx<15){swipeRef.current.active=false;return}
+    if(dx>0){swipeRef.current.dx=dx;setPageX(dx)}
+  },[]);
   const onTE=useCallback(e=>{
-    if(!swipeRef.current.active){setSwipeX(0);return}
-    const dx=e.changedTouches[0].clientX-swipeRef.current.x;
+    if(!swipeRef.current.active){setPageX(0,true);return}
+    const dx=swipeRef.current.dx;
     const dt=Date.now()-swipeRef.current.t;
     const v=dx/Math.max(dt,1);
     const W=window.innerWidth;
     if(dx>W*.35||v>.5){
-      // Animate current page off right edge
-      setSwipeX(W);
+      setPageX(W,true);
       setTimeout(()=>{
-        // Switch view with NO transition — new page appears instantly at x=0
         skipTransRef.current=true;
         goBack();
-        setSwipeX(0);
-        // Re-enable transition after paint
-        requestAnimationFrame(()=>{requestAnimationFrame(()=>{skipTransRef.current=false})});
-      },280);
+        requestAnimationFrame(()=>{setPageX(0,false);
+          requestAnimationFrame(()=>{skipTransRef.current=false})});
+      },300);
     }else{
-      setSwipeX(0); // spring back
+      setPageX(0,true);
     }
+    swipeRef.current.active=false;
   },[view]);
   const pullRef=useRef(0);const[pullY,setPullY]=useState(0);
 
@@ -254,18 +265,15 @@ export default function App(){
     amber:dark?'#c8a45c':'#8b7346', teal:dark?'#6a9a9a':'#4a7a7a',
     shadow:dark?'none':'0 2px 12px rgba(0,0,0,.05)',
   };
+  // Sync body bg to prevent black bands
+  useEffect(()=>{document.body.style.background=T.bg;document.getElementById('root').style.background=T.bg},[dark]);
 
-  // Wrap styles
-  const isSwiping=swipeRef.current.active&&swipeX>0;
-  const isFlying=!swipeRef.current.active&&swipeX>0;
-  const noTrans=skipTransRef.current;
+  // Wrap styles - static; swipe transform handled by pageRef DOM
   const wrap={
     position:'absolute',inset:0,background:T.bg,color:T.fg,overflow:'hidden',
     paddingTop:'env(safe-area-inset-top)',paddingBottom:'env(safe-area-inset-bottom)',
     paddingLeft:'env(safe-area-inset-left)',paddingRight:'env(safe-area-inset-right)',
-    transform:swipeX>0?`translateX(${swipeX}px)`:'none',
-    transition:noTrans?'none':(!isSwiping?'transform .3s cubic-bezier(.2,.9,.3,1)':'none'),
-    boxShadow:swipeX>10?`-6px 0 24px rgba(0,0,0,${Math.min(swipeX/400,.3)})`:undefined,
+    willChange:'transform',
   };
   const wrapScroll={...wrap,overflow:'auto',WebkitOverflowScrolling:'touch'};
 
@@ -386,7 +394,7 @@ export default function App(){
       ['thoi','Thời',T.red],['khac','Khắc',T.amber],['giay','Giây',T.teal],
       ['ngaunhien','Ngẫu Nhiên',T.green],['nhap','Nhập Quẻ',T.purple],['dacbiet','Đặc Biệt',T.blue],
     ];
-    return<div style={wrap} onTouchStart={onTS} onTouchMove={onTM} onTouchEnd={onTE}><div style={{maxWidth:480,margin:'0 auto',padding:'24px 20px'}}>
+    return<div ref={pageRef} style={wrap} onTouchStart={onTS} onTouchMove={onTM} onTouchEnd={onTE}><div style={{maxWidth:480,margin:'0 auto',padding:'24px 20px'}}>
       {/* Header */}
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:32}}>
         <div/><div style={{textAlign:'center'}}><div style={{fontSize:24,fontWeight:700,color:T.fg,fontFamily:"'Cormorant Garamond',Georgia,serif",letterSpacing:3}}>KINH DỊCH</div><div style={{fontSize:11,color:T.muted,marginTop:2,letterSpacing:1}}>Gieo Quẻ & Luận Giải</div></div>
@@ -427,7 +435,7 @@ export default function App(){
   }
 
   // ======== QUESTION ========
-  if(view==='question'){const r=qResult;return<div style={wrapScroll} onTouchStart={onTS} onTouchMove={onTM} onTouchEnd={onTE}><div style={{maxWidth:480,margin:'0 auto',padding:'16px 20px'}}>
+  if(view==='question'){const r=qResult;return<div ref={pageRef} style={wrapScroll} onTouchStart={onTS} onTouchMove={onTM} onTouchEnd={onTE}><div style={{maxWidth:480,margin:'0 auto',padding:'16px 20px'}}>
     <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
       <button onClick={goHome} style={{background:'none',border:'none',color:T.accent,fontSize:13,fontWeight:600,display:'flex',alignItems:'center',gap:4}}><Icon d={ICONS.back} size={16} color={T.accent}/> Quay lại</button>
       <span style={{fontWeight:700,color:T.accent,fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:18}}>Gieo Quẻ</span>
@@ -452,7 +460,7 @@ export default function App(){
   </div></div>}
 
   // ======== NGẪU NHIÊN ========
-  if(view==='ngaunhien'&&result?.chinh){const doPull=()=>{setPullY(0);setTimeout(castNgauNhien,50)};return<div style={{...wrap,transform:`translateX(${swipeX}px) translateY(${pullY}px)`,transition:(swipeX===0&&pullY===0)?'transform .25s ease-out':'none'}} onTouchStart={e=>{onTS(e);pullRef.current=e.touches[0].clientY}} onTouchMove={e=>{const dx=e.touches[0].clientX-swipeRef.current.x;const dy=e.touches[0].clientY-pullRef.current;if(Math.abs(dx)>Math.abs(dy)&&swipeRef.current.x<50&&dx>0)setSwipeX(Math.min(dx*.3,60));else if(dy>0&&Math.abs(dy)>Math.abs(dx))setPullY(Math.min(dy*.4,80))}} onTouchEnd={e=>{const dx=e.changedTouches[0].clientX-swipeRef.current.x;const dt=Date.now()-swipeRef.current.t;if(swipeX>30||(dx>80&&swipeRef.current.x<50&&dt<500)){setSwipeX(0);goHome()}else if(pullY>50){setSwipeX(0);doPull()}else{setSwipeX(0);setPullY(0)}}}>
+  if(view==='ngaunhien'&&result?.chinh){const doPull=()=>{setPullY(0);setTimeout(castNgauNhien,50)};return<div ref={pageRef} style={{...wrap,transform:pullY>0?`translateY(${pullY}px)`:'none',transition:pullY===0?'transform .25s ease-out':'none'}} onTouchStart={e=>{onTS(e);pullRef.current=e.touches[0].clientY}} onTouchMove={e=>{onTM(e);if(!swipeRef.current.active){const dy=e.touches[0].clientY-pullRef.current;if(dy>0)setPullY(Math.min(dy*.4,80))}}} onTouchEnd={e=>{onTE(e);if(pullY>50)doPull();else setPullY(0)}}>
     {pullY>10&&<div style={{textAlign:'center',padding:8,fontSize:12,color:T.accent,fontWeight:600}}>{pullY>50?'↓ Thả để gieo lại':'↓ Kéo xuống gieo lại'}</div>}
     <div style={{maxWidth:600,margin:'0 auto',padding:'16px 20px'}}>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}><button onClick={goHome} style={{background:'none',border:'none',color:T.accent,fontSize:13,fontWeight:600,display:'flex',alignItems:'center',gap:4}}><Icon d={ICONS.back} size={16} color={T.accent}/> Quay lại</button><span style={{fontSize:12,color:T.muted}}>{result.ts}</span><IB icon="share" onClick={()=>shareResult(result)} size={32}/></div>
@@ -463,7 +471,7 @@ export default function App(){
     </div>{Sett()}{Pop()}</div>}
 
   // ======== ĐẶC BIỆT ========
-  if(view==='dacbiet'){const r=dacBietResult;return<div style={wrap} onTouchStart={onTS} onTouchMove={onTM} onTouchEnd={onTE}><div style={{maxWidth:480,margin:'0 auto',padding:'20px'}}>
+  if(view==='dacbiet'){const r=dacBietResult;return<div ref={pageRef} style={wrap} onTouchStart={onTS} onTouchMove={onTM} onTouchEnd={onTE}><div style={{maxWidth:480,margin:'0 auto',padding:'20px'}}>
     <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:24}}><button onClick={goHome} style={{background:'none',border:'none',color:T.accent,fontSize:13,fontWeight:600,display:'flex',alignItems:'center',gap:4}}><Icon d={ICONS.back} size={16} color={T.accent}/> Quay lại</button><span style={{fontWeight:700,color:T.blue,fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:18}}>Đặc Biệt</span><div style={{width:40}}/></div>
     <p style={{fontSize:13,color:T.muted,textAlign:'center',marginBottom:16}}>Nhập dãy số ngẫu nhiên</p>
     <input type="text" inputMode="numeric" value={specialNum} onChange={e=>setSpecialNum(e.target.value)} placeholder="12345" style={{width:'100%',padding:18,border:`2px solid ${T.blue}40`,borderRadius:14,fontSize:26,textAlign:'center',background:T.card,color:T.fg,boxSizing:'border-box',marginBottom:14,fontFamily:"'Cormorant Garamond',Georgia,serif",fontWeight:600}}/>
@@ -476,7 +484,7 @@ export default function App(){
   </div>{Pop()}</div>}
 
   // ======== NHẬP QUẺ ========
-  if(view==='nhap'){return<div style={wrap} onTouchStart={onTS} onTouchMove={onTM} onTouchEnd={onTE}><div style={{maxWidth:480,margin:'0 auto',padding:'16px 20px'}}>
+  if(view==='nhap'){return<div ref={pageRef} style={wrap} onTouchStart={onTS} onTouchMove={onTM} onTouchEnd={onTE}><div style={{maxWidth:480,margin:'0 auto',padding:'16px 20px'}}>
     <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}><button onClick={()=>{goHome();setManualMoving([])}} style={{background:'none',border:'none',color:T.accent,fontSize:13,fontWeight:600,display:'flex',alignItems:'center',gap:4}}><Icon d={ICONS.back} size={16} color={T.accent}/> Quay lại</button><span style={{fontWeight:700,color:T.purple,fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:18}}>Nhập Quẻ</span><div style={{width:40}}/></div>
     <div style={{display:'flex',gap:10,marginBottom:14}}>{[['Thượng Quái',manualUpper,setManualUpper],['Hạ Quái',manualLower,setManualLower]].map(([label,val,fn])=><div key={label} style={{flex:1}}><div style={{fontSize:11,marginBottom:6,color:T.muted,textAlign:'center',fontWeight:600}}>{label}</div>{Object.entries(TRIGRAMS).map(([k,t])=><button key={k} onClick={()=>fn(k)} style={{width:'100%',padding:7,marginBottom:3,background:val===k?T.purple:T.card,color:val===k?'#fff':T.fg,border:'none',borderRadius:8,fontSize:12,fontWeight:val===k?600:400,boxShadow:val===k?'none':T.shadow}}>{t.symbol} {t.name}</button>)}</div>)}</div>
     <div style={{marginBottom:18}}><div style={{fontSize:11,marginBottom:6,color:T.muted,textAlign:'center',fontWeight:600}}>Hào Động</div><div style={{display:'flex',gap:4,justifyContent:'center'}}>{LINE_NAMES.map((n,i)=><button key={i} onClick={()=>setManualMoving(p=>p.includes(i)?p.filter(x=>x!==i):[...p,i])} style={{padding:'8px 12px',background:manualMoving.includes(i)?T.red:T.card,color:manualMoving.includes(i)?'#fff':T.fg,border:'none',borderRadius:8,fontSize:12,fontWeight:600,boxShadow:manualMoving.includes(i)?'none':T.shadow}}>{n}</button>)}</div></div>
@@ -484,7 +492,7 @@ export default function App(){
   </div></div>}
 
   // ======== RESULT + AI ========
-  if(view==='result'&&result?.chinh){const done=!luanLoading&&(luanResult||chatHistory.length>0);return<div style={wrapScroll} onTouchStart={onTS} onTouchMove={onTM} onTouchEnd={onTE}><div style={{maxWidth:600,margin:'0 auto',padding:'16px 20px'}}>
+  if(view==='result'&&result?.chinh){const done=!luanLoading&&(luanResult||chatHistory.length>0);return<div ref={pageRef} style={wrapScroll} onTouchStart={onTS} onTouchMove={onTM} onTouchEnd={onTE}><div style={{maxWidth:600,margin:'0 auto',padding:'16px 20px'}}>
     <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
       <button onClick={goHome} style={{background:'none',border:'none',color:T.accent,fontSize:13,fontWeight:600,display:'flex',alignItems:'center',gap:4}}><Icon d={ICONS.back} size={16} color={T.accent}/> Quay lại</button>
       <span style={{fontSize:12,color:T.muted}}>{result.method} · {result.ts}</span>
@@ -573,7 +581,7 @@ export default function App(){
     const dowLabels=['CN','T2','T3','T4','T5','T6','T7'];
     const cells=[];for(let i=0;i<firstDow;i++)cells.push(null);for(let d=1;d<=daysInMonth;d++)cells.push(d);
 
-    return<div style={wrap} onTouchStart={onTS} onTouchMove={onTM} onTouchEnd={onTE}><div style={{maxWidth:480,margin:'0 auto',padding:'16px 20px'}}>
+    return<div ref={pageRef} style={wrap} onTouchStart={onTS} onTouchMove={onTM} onTouchEnd={onTE}><div style={{maxWidth:480,margin:'0 auto',padding:'16px 20px'}}>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
         <button onClick={goHome} style={{background:'none',border:'none',color:T.accent,fontSize:13,fontWeight:600}}>← Quay lại</button>
         <span style={{fontWeight:700,color:T.fg,fontSize:16}}>Lịch Việt</span>
@@ -647,7 +655,7 @@ export default function App(){
       return{chinh:lv2hex(lv),bien:lv2bien(lv,moving),queHo:lv2ho(lv),lines,lineValues:lv,moving};
     });
 
-    return<div style={wrapScroll} onTouchStart={onTS} onTouchMove={onTM} onTouchEnd={onTE}><div style={{maxWidth:480,margin:'0 auto',padding:'12px 16px'}}>
+    return<div ref={pageRef} style={wrapScroll} onTouchStart={onTS} onTouchMove={onTM} onTouchEnd={onTE}><div style={{maxWidth:480,margin:'0 auto',padding:'12px 16px'}}>
       {/* Header */}
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
         <button onClick={()=>setView(calFrom)} style={{background:'none',border:'none',color:T.accent,fontSize:13,fontWeight:600}}>← Quay lại</button>
@@ -691,7 +699,7 @@ export default function App(){
   if(view==='tracuu'){
     const queList=HEXAGRAMS.map(h=>{const p=h[1].split(' ');return{full:h[1],short:p.length>2?p.slice(2).join(' '):h[1]}}).sort((a,b)=>a.short.localeCompare(b.short));
 
-    return<div style={wrapScroll} onTouchStart={onTS} onTouchMove={onTM} onTouchEnd={onTE}><div style={{maxWidth:480,margin:'0 auto',padding:'16px 20px'}}>
+    return<div ref={pageRef} style={wrapScroll} onTouchStart={onTS} onTouchMove={onTM} onTouchEnd={onTE}><div style={{maxWidth:480,margin:'0 auto',padding:'16px 20px'}}>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
         <button onClick={goHome} style={{background:'none',border:'none',color:T.accent,fontSize:13,fontWeight:600}}>← Quay lại</button>
         <span style={{fontWeight:700,color:T.fg,fontSize:16}}>Tra Cứu Ngày Theo Quẻ</span>
@@ -780,7 +788,7 @@ export default function App(){
       return `${h}h${m.toString().padStart(2,'0')} - ${h2}h${m2.toString().padStart(2,'0')}`;
     });
 
-    return<div style={wrapScroll} onTouchStart={onTS} onTouchMove={onTM} onTouchEnd={onTE}><div style={{maxWidth:480,margin:'0 auto',padding:'12px 16px'}}>
+    return<div ref={pageRef} style={wrapScroll} onTouchStart={onTS} onTouchMove={onTM} onTouchEnd={onTE}><div style={{maxWidth:480,margin:'0 auto',padding:'12px 16px'}}>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
         <button onClick={()=>setView('lichday')} style={{background:'none',border:'none',color:T.accent,fontSize:13,fontWeight:600}}>← Quay lại</button>
         <div style={{textAlign:'center'}}>
@@ -806,5 +814,5 @@ export default function App(){
     </div>{Pop()}</div>;
   }
 
-  return<div style={wrap}><div style={{display:'flex',alignItems:'center',justifyContent:'center',minHeight:'100dvh'}}><button onClick={goHome} style={{padding:'14px 28px',background:T.accent,color:'#fff',border:'none',borderRadius:12,fontWeight:600}}>← Quay lại</button></div></div>;
+  return<div ref={pageRef} style={wrap}><div style={{display:'flex',alignItems:'center',justifyContent:'center',minHeight:'100dvh'}}><button onClick={goHome} style={{padding:'14px 28px',background:T.accent,color:'#fff',border:'none',borderRadius:12,fontWeight:600}}>← Quay lại</button></div></div>;
 }
