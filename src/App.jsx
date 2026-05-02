@@ -729,24 +729,42 @@ export default function App(){
       </div>
 
       {tcResults&&<div>
-        <div style={{fontSize:13,fontWeight:600,color:T.muted,marginBottom:8}}>
-          {tcResults.length===0?'Không tìm thấy trong năm '+tcYear:`${tcResults.length} ngày giờ tìm thấy`}
+        <div style={{fontSize:13,fontWeight:600,color:T.muted,marginBottom:10}}>
+          {tcResults.length===0?'Không tìm thấy trong năm '+tcYear:`${tcResults.length} kết quả`}
         </div>
         {tcResults.map((r,i)=>{
           const dow=['CN','T2','T3','T4','T5','T6','T7'][new Date(tcYear,r.m-1,r.d).getDay()];
           return<div key={i} onClick={()=>{setCalYear(tcYear);setCalMonth(r.m);setCalDay(r.d);setCalFrom('tracuu');setView('lichday')}}
-            style={{display:'grid',gridTemplateColumns:'1fr auto 1fr',gap:8,alignItems:'center',padding:'12px 14px',marginBottom:4,background:T.card,border:`1px solid ${T.border}`,borderRadius:10,cursor:'pointer'}}>
-            <div>
-              <div style={{fontSize:15,fontWeight:600,color:T.fg}}>{dow} {r.d}/{r.m}/{tcYear}</div>
-              <div style={{fontSize:11,color:T.muted}}>ÂL {r.luDay}/{r.luMonth}</div>
+            style={{padding:'12px 14px',marginBottom:6,background:T.card,border:`1px solid ${T.border}`,borderRadius:12,cursor:'pointer'}}>
+            {/* Row 1: Date + Hour */}
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
+              <div>
+                <span style={{fontSize:15,fontWeight:600,color:T.fg}}>{dow} {r.d}/{r.m}/{tcYear}</span>
+                <span style={{fontSize:11,color:T.muted,marginLeft:8}}>ÂL {r.luDay}/{r.luMonth}</span>
+              </div>
+              <div style={{background:T.accentSoft,padding:'3px 10px',borderRadius:6}}>
+                <span style={{fontSize:13,fontWeight:700,color:T.accent}}>{CHI_NAMES[r.hi]}</span>
+                <span style={{fontSize:11,color:T.muted,marginLeft:4}}>{CHI_HOURS[r.hi]}h</span>
+              </div>
             </div>
-            <div style={{textAlign:'center'}}>
-              <div style={{fontSize:13,fontWeight:700,color:T.accent}}>{CHI_NAMES[r.hi]}</div>
-              <div style={{fontSize:10,color:T.muted}}>{CHI_HOURS[r.hi]}h</div>
-            </div>
-            <div style={{textAlign:'right'}}>
-              <div style={{fontSize:13,fontWeight:600,color:T.fg}}>{calQ(r.chinh)}</div>
-              <div style={{fontSize:11,color:T.muted}}>→ {calQ(r.bien)}</div>
+            {/* Row 2: Chánh → Hộ → Biến */}
+            <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:6}}>
+              <div style={{flex:1,textAlign:'center',padding:'6px 4px',background:T.accentSoft,borderRadius:8}}>
+                <div style={{fontSize:10,color:T.muted,marginBottom:2}}>Chánh</div>
+                <div style={{fontSize:15,fontWeight:700,color:T.accent}}>{calQ(r.chinh)}</div>
+              </div>
+              {r.queHo&&<>
+                <span style={{color:T.muted,fontSize:12}}>›</span>
+                <div style={{flex:1,textAlign:'center',padding:'6px 4px'}}>
+                  <div style={{fontSize:10,color:T.muted,marginBottom:2}}>Hộ</div>
+                  <div style={{fontSize:14,fontWeight:600,color:T.fg}}>{calQ(r.queHo)}</div>
+                </div>
+              </>}
+              <span style={{color:T.muted,fontSize:12}}>›</span>
+              <div style={{flex:1,textAlign:'center',padding:'6px 4px',background:dark?'#1a2020':'#f0f5f0',borderRadius:8}}>
+                <div style={{fontSize:10,color:T.muted,marginBottom:2}}>Biến</div>
+                <div style={{fontSize:15,fontWeight:700,color:T.green}}>{calQ(r.bien)}</div>
+              </div>
             </div>
           </div>
         })}
