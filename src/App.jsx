@@ -208,12 +208,12 @@ export default function App(){
   const goHome=()=>{setView('home');setResult(null);setLuanResult('');setChatHistory([]);setDacBietResult(null)};
   const goBack=()=>{if(view==='lichhour')setView('lichday');else if(view==='lichday')setView('lichviet');else if(view==='tracuu')goHome();else goHome()};
 
-  // Swipe
-  const swipeRef=useRef({x:0,t:0});
+  // Swipe - iOS style: follow finger 1:1, velocity-based release
+  const swipeRef=useRef({x:0,y:0,t:0,active:false});
   const[swipeX,setSwipeX]=useState(0);
-  const onTS=useCallback(e=>{swipeRef.current={x:e.touches[0].clientX,t:Date.now()};setSwipeX(0)},[]);
-  const onTM=useCallback(e=>{const dx=e.touches[0].clientX-swipeRef.current.x;if(swipeRef.current.x<50&&dx>0)setSwipeX(Math.min(dx*.3,60))},[]);
-  const onTE=useCallback(e=>{const dx=e.changedTouches[0].clientX-swipeRef.current.x;const dt=Date.now()-swipeRef.current.t;setSwipeX(0);if((dx>80||dx/Math.max(dt,1)>.4)&&swipeRef.current.x<50&&dt<500)goBack()},[view]);
+  const onTS=useCallback(e=>{const t=e.touches[0];swipeRef.current={x:t.clientX,y:t.clientY,t:Date.now(),active:t.clientX<60}},[]);
+  const onTM=useCallback(e=>{if(!swipeRef.current.active)return;const dx=e.touches[0].clientX-swipeRef.current.x;const dy=Math.abs(e.touches[0].clientY-swipeRef.current.y);if(dy>Math.abs(dx)&&dx<15){swipeRef.current.active=false;return}if(dx>0)setSwipeX(dx)},[]);
+  const onTE=useCallback(e=>{if(!swipeRef.current.active){setSwipeX(0);return}const dx=e.changedTouches[0].clientX-swipeRef.current.x;const dt=Date.now()-swipeRef.current.t;const v=dx/Math.max(dt,1);const W=window.innerWidth;if(dx>W*.35||v>.5){setSwipeX(W);setTimeout(()=>{setSwipeX(0);goBack()},280)}else{setSwipeX(0)}},[view]);
   const pullRef=useRef(0);const[pullY,setPullY]=useState(0);
 
   // KB
@@ -232,7 +232,17 @@ export default function App(){
     shadow:dark?'none':'0 2px 12px rgba(0,0,0,.05)',
   };
 
-  const wrap={background:T.bg,color:T.fg,height:'100%',overflow:'hidden',transform:`translateX(${swipeX}px)`,transition:swipeX===0?'transform .2s ease-out':'none'};
+  // iOS-style swipe: current page slides right with shadow, dimmed bg behind
+  const swipeShadow=swipeX>0?`-8px 0 30px rgba(0,0,0,${Math.min(swipeX/300,.35)})`:undefined;
+  const isAnimating=swipeRef.current.active===false&&swipeX>0;
+  const wrap={
+    position:'absolute',inset:0,background:T.bg,color:T.fg,overflow:'hidden',
+    paddingTop:'env(safe-area-inset-top)',paddingBottom:'env(safe-area-inset-bottom)',
+    paddingLeft:'env(safe-area-inset-left)',paddingRight:'env(safe-area-inset-right)',
+    transform:`translateX(${swipeX}px)`,
+    transition:(swipeX===0||isAnimating)?'transform .3s cubic-bezier(.2,.9,.3,1)':'none',
+    boxShadow:swipeShadow,
+  };
   const wrapScroll={...wrap,overflow:'auto',WebkitOverflowScrolling:'touch'};
 
   // ======== CAST ========
