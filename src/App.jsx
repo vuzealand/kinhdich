@@ -140,6 +140,14 @@ const MI=({type,size=48})=>{
     <circle cx="-12" cy="14" r="1" fill={g} opacity=".3"/>
     <circle cx="12" cy="14" r="1" fill={g} opacity=".3"/>
   </g>);
+  if(type==='tracuu') return sv(<g>
+    <circle cx="-4" cy="-4" r="14" fill="none" stroke={g} strokeWidth="1.6"/>
+    <line x1="6" y1="6" x2="20" y2="20" stroke={g} strokeWidth="2.5" strokeLinecap="round"/>
+    <line x1="-12" y1="-8" x2="4" y2="-8" stroke={g} strokeWidth="1.5" strokeLinecap="round"/>
+    <line x1="-12" y1="-3" x2="-6" y2="-3" stroke={g} strokeWidth="1.5" strokeLinecap="round"/>
+    <line x1="-2" y1="-3" x2="4" y2="-3" stroke={g} strokeWidth="1.5" strokeLinecap="round"/>
+    <line x1="-12" y1="2" x2="4" y2="2" stroke={g} strokeWidth="1.5" strokeLinecap="round"/>
+  </g>);
   return null;
 };
 
@@ -188,11 +196,17 @@ export default function App(){
   const[calMonth,setCalMonth]=useState(()=>new Date().getMonth()+1);
   const[calDay,setCalDay]=useState(null);
   const[calHour,setCalHour]=useState(null);
-  const[showMonthPicker,setShowMonthPicker]=useState(false); // selected day for 12-hour view
+  const[showMonthPicker,setShowMonthPicker]=useState(false);
+  // Tra cứu
+  const[tcChinh,setTcChinh]=useState('');
+  const[tcBien,setTcBien]=useState('');
+  const[tcYear,setTcYear]=useState(()=>new Date().getFullYear());
+  const[tcResults,setTcResults]=useState(null);
+  const[tcLoading,setTcLoading]=useState(false); // selected day for 12-hour view
 
   const toggleDark=()=>{const n=!dark;setDark(n);localStorage.setItem('kd_dark',n?'1':'0')};
   const goHome=()=>{setView('home');setResult(null);setLuanResult('');setChatHistory([]);setDacBietResult(null)};
-  const goBack=()=>{if(view==='lichhour')setView('lichday');else if(view==='lichday')setView('lichviet');else goHome()};
+  const goBack=()=>{if(view==='lichhour')setView('lichday');else if(view==='lichday')setView('lichviet');else if(view==='tracuu')goHome();else goHome()};
 
   // Swipe
   const swipeRef=useRef({x:0,t:0});
@@ -368,6 +382,13 @@ export default function App(){
         <MI type="lichviet" size={40}/>
         <div><div style={{fontSize:14,fontWeight:600,color:T.fg}}>Lịch Việt</div><div style={{fontSize:11,color:T.muted,marginTop:1}}>Âm lịch • 12 quẻ theo giờ mỗi ngày</div></div>
       </button>
+
+      {/* Tra cứu */}
+      <button onClick={()=>{setTcChinh('');setTcBien('');setTcResults(null);setView('tracuu')}}
+        style={{width:'100%',marginTop:8,padding:'14px 20px',background:T.card,border:`1px solid ${T.border}`,borderRadius:14,display:'flex',alignItems:'center',gap:14,textAlign:'left',boxShadow:T.shadow}}>
+        <MI type="tracuu" size={40}/>
+        <div><div style={{fontSize:14,fontWeight:600,color:T.fg}}>Tra cứu ngày theo quẻ</div><div style={{fontSize:11,color:T.muted,marginTop:1}}>Tìm ngày giờ ứng quẻ Chánh & Biến</div></div>
+      </button>
     </div>{Sett()}{Pop()}</div>;
   }
 
@@ -465,6 +486,48 @@ export default function App(){
     const uKey=MH_NUM[uNum],lKey=MH_NUM[lNum];
     const lv=[...lKey.split('').reverse().map(Number),...uKey.split('').reverse().map(Number)];
     return lv2hex(lv);
+  };
+
+  // Tra cứu: search year for matching quẻ
+  const searchQue=()=>{
+    if(!tcChinh){alert('Chọn quẻ Chánh');return}
+    setTcLoading(true);setTcResults(null);
+    setTimeout(()=>{
+      const matches=[];
+      const targetC=tcChinh.toUpperCase();
+      const targetB=tcBien?tcBien.toUpperCase():'';
+      const daysInYear=[31,((tcYear%4===0&&tcYear%100!==0)||tcYear%400===0)?29:28,31,30,31,30,31,31,30,31,30,31];
+      for(let m=1;m<=12;m++){
+        for(let d=1;d<=daysInYear[m-1];d++){
+          const lu=s2l(d,m,tcYear);
+          const chiY=((lu.year+8)%12)+1;
+          const sumU=chiY+lu.month+lu.day;
+          for(let hi=0;hi<12;hi++){
+            const hourChi=hi+1;
+            const sumL=sumU+hourChi;
+            const uRem=sumU%8;const uNum=uRem===0?8:uRem;
+            const lRem=sumL%8;const lNum=lRem===0?8:lRem;
+            const hRem=sumL%6;const haoIdx=hRem===0?5:(hRem-1);
+            const uKey=MH_NUM[uNum],lKey=MH_NUM[lNum];
+            const lv=[...lKey.split('').reverse().map(Number),...uKey.split('').reverse().map(Number)];
+            const chinh=lv2hex(lv);
+            if(!chinh)continue;
+            const cName=chinh[1].toUpperCase();
+            if(!cName.includes(targetC))continue;
+            // Check biến if specified
+            if(targetB){
+              const bien=lv2bien(lv,[haoIdx]);
+              if(!bien||!bien[1].toUpperCase().includes(targetB))continue;
+            }
+            matches.push({d,m,hi,chinh,luDay:lu.day,luMonth:lu.month});
+            if(matches.length>=100)break;
+          }
+          if(matches.length>=100)break;
+        }
+        if(matches.length>=100)break;
+      }
+      setTcResults(matches);setTcLoading(false);
+    },50);
   };
 
   if(view==='lichviet'){
@@ -588,6 +651,69 @@ export default function App(){
         })}
       </div>
     </div>{Pop()}</div>;
+  }
+
+  // ======== TRA CỨU NGÀY THEO QUẺ ========
+  if(view==='tracuu'){
+    // Build list of all 64 quẻ names for dropdown
+    const queList=HEXAGRAMS.map(h=>{const p=h[1].split(' ');return{full:h[1],short:p.length>2?p.slice(2).join(' '):h[1]}}).sort((a,b)=>a.short.localeCompare(b.short));
+
+    return<div style={wrapScroll} onTouchStart={onTS} onTouchMove={onTM} onTouchEnd={onTE}><div style={{maxWidth:480,margin:'0 auto',padding:'16px 20px'}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
+        <button onClick={goHome} style={{background:'none',border:'none',color:T.accent,fontSize:13,fontWeight:600}}>← Quay lại</button>
+        <span style={{fontWeight:700,color:T.fg,fontSize:16}}>Tra Cứu Ngày Theo Quẻ</span>
+        <div style={{width:50}}/>
+      </div>
+
+      {/* Input */}
+      <div style={{background:T.card,borderRadius:14,padding:16,border:`1px solid ${T.border}`,marginBottom:16,boxShadow:T.shadow}}>
+        <div style={{marginBottom:12}}>
+          <label style={{fontSize:12,fontWeight:600,color:T.accent,display:'block',marginBottom:4}}>Quẻ Chánh *</label>
+          <select value={tcChinh} onChange={e=>setTcChinh(e.target.value)}
+            style={{width:'100%',padding:10,border:`1px solid ${T.border}`,borderRadius:8,fontSize:14,background:T.bg,color:T.fg}}>
+            <option value="">— Chọn quẻ —</option>
+            {queList.map(q=><option key={q.full} value={q.short}>{q.short} ({q.full})</option>)}
+          </select>
+        </div>
+        <div style={{marginBottom:12}}>
+          <label style={{fontSize:12,fontWeight:600,color:T.muted,display:'block',marginBottom:4}}>Quẻ Biến (tùy chọn)</label>
+          <select value={tcBien} onChange={e=>setTcBien(e.target.value)}
+            style={{width:'100%',padding:10,border:`1px solid ${T.border}`,borderRadius:8,fontSize:14,background:T.bg,color:T.fg}}>
+            <option value="">— Không lọc —</option>
+            {queList.map(q=><option key={q.full} value={q.short}>{q.short} ({q.full})</option>)}
+          </select>
+        </div>
+        <div style={{marginBottom:12}}>
+          <label style={{fontSize:12,fontWeight:600,color:T.muted,display:'block',marginBottom:4}}>Năm</label>
+          <input type="number" value={tcYear} onChange={e=>setTcYear(parseInt(e.target.value)||2026)}
+            style={{width:100,padding:10,border:`1px solid ${T.border}`,borderRadius:8,fontSize:16,fontWeight:700,textAlign:'center',background:T.bg,color:T.fg}}/>
+        </div>
+        <button onClick={searchQue} disabled={tcLoading}
+          style={{width:'100%',padding:12,background:T.accent,color:'#fff',border:'none',borderRadius:10,fontWeight:700,fontSize:15,opacity:tcLoading?.5:1}}>
+          {tcLoading?'Đang tìm...':'🔍 Tìm Kiếm'}
+        </button>
+      </div>
+
+      {/* Results */}
+      {tcResults&&<div>
+        <div style={{fontSize:13,fontWeight:600,color:T.muted,marginBottom:8}}>
+          {tcResults.length===0?'Không tìm thấy kết quả':`Tìm thấy ${tcResults.length} kết quả${tcResults.length>=100?' (hiện tối đa 100)':''}`}
+        </div>
+        {tcResults.map((r,i)=>{
+          const dow=['CN','T2','T3','T4','T5','T6','T7'][new Date(tcYear,r.m-1,r.d).getDay()];
+          return<div key={i} onClick={()=>setPopup(r.chinh)}
+            style={{display:'flex',alignItems:'center',gap:10,padding:'10px 12px',marginBottom:4,background:T.card,border:`1px solid ${T.border}`,borderRadius:8,cursor:'pointer'}}>
+            <div style={{minWidth:80}}>
+              <div style={{fontSize:14,fontWeight:600,color:T.fg}}>{dow} {r.d}/{r.m}</div>
+              <div style={{fontSize:11,color:T.muted}}>ÂL {r.luDay}/{r.luMonth}</div>
+            </div>
+            <div style={{fontSize:13,fontWeight:700,color:T.accent}}>{CHI_NAMES[r.hi]}</div>
+            <div style={{fontSize:11,color:T.muted}}>{CHI_HOURS[r.hi]}h</div>
+            <div style={{flex:1,textAlign:'right',fontSize:13,fontWeight:600,color:T.fg}}>{calQ(r.chinh)}</div>
+          </div>
+        })}
+      </div>}
+    </div></div>;
   }
 
   // ======== LỊCH VIỆT — Hour Detail: 12 khung 10 phút ========
