@@ -198,6 +198,7 @@ export default function App(){
   const[calHour,setCalHour]=useState(null);
   const[calFrom,setCalFrom]=useState('lichviet'); // tracks where lichday was opened from
   const[showMonthPicker,setShowMonthPicker]=useState(false);
+  const[pickerYear,setPickerYear]=useState(2026);
   // Tra cứu
   const[tcChinh,setTcChinh]=useState('');
   const[tcBien,setTcBien]=useState('');
@@ -512,6 +513,7 @@ export default function App(){
       {chatHistory.length>0&&chatHistory.map((msg,i)=><div key={i} style={{marginBottom:10,padding:msg.role==='user'?'10px 14px':0,background:msg.role==='user'?T.bg:'transparent',borderRadius:10,borderLeft:msg.role==='assistant'?`3px solid ${T.accent}`:'none',paddingLeft:msg.role==='assistant'?14:14}}>{msg.role==='user'&&i>0&&<div style={{fontSize:11,color:T.muted,marginBottom:2}}>Hỏi thêm:</div>}<div style={{fontSize:14,lineHeight:1.8,whiteSpace:'pre-wrap'}}>{i===0?'':msg.content}{luanLoading&&i===chatHistory.length-1&&msg.role==='assistant'&&<span style={{color:T.accent}}>▊</span>}</div></div>)}
       {done&&<div style={{display:'flex',gap:6,marginTop:10,borderTop:`1px solid ${T.border}`,paddingTop:10}}><input type="text" value={followUp} onChange={e=>setFollowUp(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')sendFU()}} placeholder="Hỏi thêm..." style={{flex:1,padding:12,border:`1px solid ${T.border}`,borderRadius:10,fontSize:14,background:T.bg,color:T.fg}}/><button onClick={sendFU} disabled={!followUp.trim()||luanLoading} style={{padding:'12px 18px',background:T.accent,color:'#fff',border:'none',borderRadius:10,fontWeight:600,opacity:!followUp.trim()||luanLoading?.5:1}}>Gửi</button></div>}
     </div>}
+    {result.method==='Nhập Quẻ'&&<button onClick={()=>{setManualMoving([]);setView('nhap')}} style={{width:'100%',padding:12,background:T.card,border:`1px solid ${T.border}`,borderRadius:10,fontWeight:600,color:T.purple,marginBottom:10}}>Nhập quẻ tiếp →</button>}
     {Sett()}{Pop()}
   </div></div>}
 
@@ -589,7 +591,7 @@ export default function App(){
       </div>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
         <button onClick={prevM} style={{width:32,height:32,borderRadius:8,border:`1px solid ${T.border}`,background:T.card,fontSize:16,display:'flex',alignItems:'center',justifyContent:'center'}}>‹</button>
-        <button onClick={()=>setShowMonthPicker(true)} style={{background:'none',border:'none',cursor:'pointer'}}>
+        <button onClick={()=>{setPickerYear(calYear);setShowMonthPicker(true)}} style={{background:'none',border:'none',cursor:'pointer'}}>
           <span style={{fontSize:17,fontWeight:700,color:T.fg}}>Tháng {calMonth}, {calYear} </span>
           <span style={{fontSize:12,color:T.accent}}>▾</span>
         </button>
@@ -620,19 +622,25 @@ export default function App(){
         <div onClick={e=>e.stopPropagation()} style={{background:dark?'#1c1c20':'#fff',borderRadius:16,padding:20,maxWidth:340,width:'100%'}}>
           <div style={{textAlign:'center',marginBottom:16,fontWeight:700,color:T.fg,fontSize:16}}>Chọn tháng & năm</div>
           <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,marginBottom:16}}>
-            <input type="number" value={calYear} onChange={e=>setCalYear(parseInt(e.target.value)||2026)}
+            <button onClick={()=>setPickerYear(p=>p-1)} style={{width:32,height:32,borderRadius:8,border:`1px solid ${T.border}`,background:T.card,fontSize:16}}>‹</button>
+            <input type="number" value={pickerYear} onChange={e=>setPickerYear(e.target.value===''?'':parseInt(e.target.value))}
               style={{width:80,padding:'8px 4px',textAlign:'center',fontSize:18,fontWeight:700,border:`1px solid ${T.border}`,borderRadius:8,background:T.card,color:T.fg}}/>
+            <button onClick={()=>setPickerYear(p=>(parseInt(p)||2026)+1)} style={{width:32,height:32,borderRadius:8,border:`1px solid ${T.border}`,background:T.card,fontSize:16}}>›</button>
           </div>
           <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:6}}>
             {Array.from({length:12},(_,i)=>i+1).map(m=>(
-              <button key={m} onClick={()=>{setCalMonth(m);setShowMonthPicker(false)}}
-                style={{padding:'10px 0',borderRadius:8,border:m===calMonth?`2px solid ${T.accent}`:`1px solid ${T.border}`,background:m===calMonth?T.accentBg:T.card,color:m===calMonth?T.accent:T.fg,fontWeight:m===calMonth?700:400,fontSize:14,cursor:'pointer'}}>
+              <button key={m} onClick={()=>{setCalYear(parseInt(pickerYear)||2026);setCalMonth(m);setShowMonthPicker(false)}}
+                style={{padding:'10px 0',borderRadius:8,border:m===calMonth?`2px solid ${T.accent}`:`1px solid ${T.border}`,background:m===calMonth?T.accentSoft:T.card,color:m===calMonth?T.accent:T.fg,fontWeight:m===calMonth?700:400,fontSize:14}}>
                 T{m}
               </button>
             ))}
           </div>
-          <button onClick={()=>{const d=new Date();setCalYear(d.getFullYear());setCalMonth(d.getMonth()+1);setShowMonthPicker(false)}}
-            style={{width:'100%',marginTop:12,padding:10,background:T.accent,color:'#fff',border:'none',borderRadius:8,fontWeight:600}}>Hôm nay</button>
+          <div style={{display:'flex',gap:8,marginTop:12}}>
+            <button onClick={()=>{const d=new Date();setCalYear(d.getFullYear());setCalMonth(d.getMonth()+1);setShowMonthPicker(false)}}
+              style={{flex:1,padding:10,background:T.card,border:`1px solid ${T.border}`,borderRadius:8,fontWeight:600,color:T.fg}}>Hôm nay</button>
+            <button onClick={()=>{setCalYear(parseInt(pickerYear)||2026);setShowMonthPicker(false)}}
+              style={{flex:1,padding:10,background:T.accent,color:'#fff',border:'none',borderRadius:8,fontWeight:600}}>Xong</button>
+          </div>
         </div>
       </div>}
     </div></div>;
@@ -697,7 +705,7 @@ export default function App(){
 
   // ======== TRA CỨU NGÀY THEO QUẺ ========
   if(view==='tracuu'){
-    const queList=HEXAGRAMS.map(h=>{const p=h[1].split(' ');return{full:h[1],short:p.length>2?p.slice(2).join(' '):h[1]}}).sort((a,b)=>a.short.localeCompare(b.short));
+    const queList=HEXAGRAMS.map(h=>{const c=calQ(h);return{full:h[1],cal:c}}).filter(q=>q.cal).sort((a,b)=>a.cal.localeCompare(b.cal));
 
     return<div ref={pageRef} style={wrapScroll} onTouchStart={onTS} onTouchMove={onTM} onTouchEnd={onTE}><div style={{maxWidth:480,margin:'0 auto',padding:'16px 20px'}}>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
@@ -712,7 +720,7 @@ export default function App(){
           <select value={tcChinh} onChange={e=>setTcChinh(e.target.value)}
             style={{width:'100%',padding:10,border:`1px solid ${T.border}`,borderRadius:8,fontSize:14,background:T.bg,color:T.fg}}>
             <option value="">— Chọn quẻ —</option>
-            {queList.map(q=><option key={'c'+q.full} value={q.short}>{q.short} ({q.full})</option>)}
+            {queList.map(q=><option key={'c'+q.full} value={q.cal}>{q.cal} ({q.full})</option>)}
           </select>
         </div>
         <div style={{marginBottom:12}}>
@@ -720,7 +728,7 @@ export default function App(){
           <select value={tcBien} onChange={e=>setTcBien(e.target.value)}
             style={{width:'100%',padding:10,border:`1px solid ${T.border}`,borderRadius:8,fontSize:14,background:T.bg,color:T.fg}}>
             <option value="">— Chọn quẻ —</option>
-            {queList.map(q=><option key={'b'+q.full} value={q.short}>{q.short} ({q.full})</option>)}
+            {queList.map(q=><option key={'b'+q.full} value={q.cal}>{q.cal} ({q.full})</option>)}
           </select>
         </div>
         <div style={{display:'flex',gap:10,alignItems:'flex-end',marginBottom:12}}>
@@ -743,18 +751,17 @@ export default function App(){
         {tcResults.map((r,i)=>{
           const dow=['CN','T2','T3','T4','T5','T6','T7'][new Date(tcYear,r.m-1,r.d).getDay()];
           return<div key={i} onClick={()=>{setCalYear(tcYear);setCalMonth(r.m);setCalDay(r.d);setCalFrom('tracuu');setView('lichday')}}
-            style={{display:'flex',alignItems:'center',gap:8,padding:'8px 12px',marginBottom:3,background:T.card,border:`1px solid ${T.border}`,borderRadius:8,cursor:'pointer'}}>
-            <div style={{minWidth:70}}>
-              <div style={{fontSize:13,fontWeight:600,color:T.fg}}>{dow} {r.d}/{r.m}</div>
+            style={{display:'grid',gridTemplateColumns:'60px 40px 1fr 20px 1fr 20px 1fr',alignItems:'center',padding:'8px 8px',marginBottom:2,background:T.card,border:`1px solid ${T.border}`,borderRadius:6,cursor:'pointer',textAlign:'center'}}>
+            <div style={{textAlign:'left'}}>
+              <div style={{fontSize:12,fontWeight:600,color:T.fg}}>{dow} {r.d}/{r.m}</div>
               <div style={{fontSize:9,color:T.muted}}>ÂL {r.luDay}/{r.luMonth}</div>
             </div>
-            <div style={{fontSize:11,fontWeight:600,color:T.accent,minWidth:28}}>{CHI_NAMES[r.hi]}</div>
-            <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'flex-end',gap:4,fontSize:11,fontWeight:500}}>
-              <span style={{color:T.accent}}>{calQ(r.chinh)}</span>
-              {r.queHo&&<><span style={{color:T.muted}}>›</span><span style={{color:T.fg}}>{calQ(r.queHo)}</span></>}
-              <span style={{color:T.muted}}>›</span>
-              <span style={{color:T.green}}>{calQ(r.bien)}</span>
-            </div>
+            <div style={{fontSize:12,fontWeight:700,color:T.accent}}>{CHI_NAMES[r.hi]}</div>
+            <div style={{fontSize:14,fontWeight:600,color:T.fg}}>{calQ(r.chinh)}</div>
+            <div style={{color:T.muted}}>-</div>
+            <div style={{fontSize:14,fontWeight:600,color:T.fg}}>{r.queHo?calQ(r.queHo):''}</div>
+            <div style={{color:T.muted}}>-</div>
+            <div style={{fontSize:14,fontWeight:600,color:T.fg}}>{r.bien?calQ(r.bien):''}</div>
           </div>
         })}
       </div>}
@@ -798,17 +805,22 @@ export default function App(){
         <div style={{width:50}}/>
       </div>
 
+      {/* Column headers */}
+      <div style={{display:'grid',gridTemplateColumns:'70px 1fr 1fr 1fr',gap:2,marginBottom:2,padding:'0 4px'}}>
+        <div style={{fontSize:10,fontWeight:600,color:T.muted,textAlign:'center'}}>Phút</div>
+        <div style={{fontSize:10,fontWeight:600,color:T.accent,textAlign:'center'}}>Chánh</div>
+        <div style={{fontSize:10,fontWeight:600,color:T.muted,textAlign:'center'}}>Hộ</div>
+        <div style={{fontSize:10,fontWeight:600,color:T.muted,textAlign:'center'}}>Biến</div>
+      </div>
+
       {minQues.map((q,mi)=>{
         if(!q.chinh)return null;
-        return<div key={mi} style={{borderBottom:`1px solid ${T.border}`,padding:'10px 0'}}>
-          <div style={{fontSize:12,color:T.muted,marginBottom:4}}>{timeLabels[mi]}</div>
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'0 8px'}}>
-            <div onClick={()=>setPopup(q.chinh)} style={{cursor:'pointer',fontSize:15,fontWeight:600,color:T.fg,flex:1,textAlign:'left'}}>{calQ(q.chinh)}</div>
-            <span style={{color:T.muted,margin:'0 8px'}}>—</span>
-            <div onClick={()=>q.queHo&&setPopup(q.queHo)} style={{cursor:'pointer',fontSize:15,fontWeight:600,color:T.fg,flex:1,textAlign:'center'}}>{q.queHo?calQ(q.queHo):''}</div>
-            <span style={{color:T.muted,margin:'0 8px'}}>—</span>
-            <div onClick={()=>q.bien&&setPopup(q.bien)} style={{cursor:'pointer',fontSize:15,fontWeight:600,color:T.fg,flex:1,textAlign:'right'}}>{q.bien?calQ(q.bien):''}</div>
-          </div>
+        return<div key={mi}
+          style={{display:'grid',gridTemplateColumns:'70px 1fr 1fr 1fr',gap:2,alignItems:'center',background:T.card,border:`1px solid ${T.border}`,borderRadius:6,textAlign:'center',padding:'8px 4px',marginBottom:2}}>
+          <div style={{fontSize:11,fontWeight:600,color:T.fg,lineHeight:1.2}}>{timeLabels[mi]}</div>
+          <div onClick={()=>setPopup(q.chinh)} style={{cursor:'pointer',fontSize:13,fontWeight:600,color:T.fg}}>{calQ(q.chinh)}</div>
+          <div onClick={()=>q.queHo&&setPopup(q.queHo)} style={{cursor:'pointer',fontSize:13,fontWeight:600,color:T.fg}}>{q.queHo?calQ(q.queHo):''}</div>
+          <div onClick={()=>q.bien&&setPopup(q.bien)} style={{cursor:'pointer',fontSize:13,fontWeight:600,color:T.fg}}>{q.bien?calQ(q.bien):''}</div>
         </div>
       })}
     </div>{Pop()}</div>;
